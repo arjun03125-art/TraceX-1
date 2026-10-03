@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Audit Event Schema v1",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "action",
+    "created_at"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "case_id": { "type": ["string", "null"], "format": "uuid" },
+    "evidence_id": { "type": ["string", "null"], "format": "uuid" },
+    "event_type": { "type": "string" },
+    "actor": { "type": ["string", "null"] },
+    "action": { "type": "string" },
+    "description": { "type": ["string", "null"] },
+    "input_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "output_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

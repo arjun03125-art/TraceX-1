@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Evidence Schema v1",
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "case_id",
+    "evidence_number",
+    "original_filename",
+    "stored_path",
+    "size_bytes",
+    "sha256_hash",
+    "status"
+  ],
+  "properties": {
+    "evidence_id": { "type": "string", "format": "uuid" },
+    "case_id": { "type": "string", "format": "uuid" },
+    "evidence_number": { "type": "string" },
+    "original_filename": { "type": ["string", "null"] },
+    "stored_path": { "type": "string" },
+    "size_bytes": { "type": "integer", "minimum": 0 },
+    "sha256_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "mime_type": { "type": ["string", "null"] },
+    "filesystem_type": {
+      "type": "string",
+      "enum": ["unknown", "xfs", "btrfs", "ext4", "ntfs", "fat32", "other"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["imported", "verified", "processing", "processed", "error", "archived"]
+    },
+    "metadata": { "type": "object" },
+    "acquired_at": { "type": "string", "format": "date-time" },
+    "acquired_by": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

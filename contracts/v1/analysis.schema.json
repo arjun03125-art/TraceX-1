@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Analysis Job Schema v1",
+  "type": "object",
+  "required": [
+    "job_id",
+    "case_id",
+    "evidence_id",
+    "job_type",
+    "status",
+    "progress_percent"
+  ],
+  "properties": {
+    "job_id": { "type": "string", "format": "uuid" },
+    "case_id": { "type": "string", "format": "uuid" },
+    "evidence_id": { "type": "string", "format": "uuid" },
+    "job_type": {
+      "type": "string",
+      "enum": ["full_analysis", "filesystem_analysis", "carving_only", "report_generation"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["created", "queued", "running", "completed", "failed", "cancelled"]
+    },
+    "current_stage": {
+      "type": ["string", "null"],
+      "enum": [
+        "evidence_verification",
+        "filesystem_detection",
+        "xfs_analysis",
+        "btrfs_analysis",
+        "carving",
+        "normalization",
+        "correlation",
+        "validation",
+        "reporting"
+      ]
+    },
+    "progress_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "config": { "type": "object" },
+    "error": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}
