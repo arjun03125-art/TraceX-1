@@ -1,12 +1,13 @@
 /**
  * DemoPage — TRACE X Guided Forensic Demo
  *
- * 9 numbered stages. 1x default speed. Auto + Guided modes.
- * COMPLETELY ISOLATED — zero interaction with real data stores.
- * All data is synthetic. Never persists anywhere.
+ * Deterministic, frontend-only simulation workflow.
+ * 9 numbered stages. Manual presentation controls (RUN STEP -> explain -> NEXT).
+ * Zero backend/API/database/external dependencies.
+ * Coherent dataset: Case TRACEX-DEMO-001, Evidence demo-evidence-01.raw, Filesystem XFS.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,11 +15,10 @@ import {
   FileCheck2, ShieldCheck, ScrollText, ClipboardList,
   AlertTriangle, ChevronRight, ChevronLeft, Terminal,
   ArrowRight, Play, Pause, RotateCcw, X,
-  FileX2, Fingerprint, Clock, Hash, Lock,
-  Circle, Loader2
+  FileX2, Hash, Circle, Loader2, Sparkles
 } from 'lucide-react';
 
-// ─── Pipeline definition ─────────────────────────────────────────────────────
+// ─── Pipeline Stage Definition ───────────────────────────────────────────────
 
 interface DemoStage {
   num: string;
@@ -29,13 +29,13 @@ interface DemoStage {
   headline: string;
   explanation: string;
   why: string;
-  input: string;
-  process: string[];
-  output: string;
-  // Duration in ms for auto-play at 1x
-  durationMs: number;
-  // Terminal log lines
-  log: string[];
+  whatWeTake: string;
+  whatWeDo: string[];
+  whatWeProduce: string[];
+  whereItGoesNext: string;
+  outputSummary: string;
+  command: string;
+  logLines: string[];
 }
 
 const STAGES: DemoStage[] = [
@@ -45,30 +45,33 @@ const STAGES: DemoStage[] = [
     label: 'CREATE CASE',
     icon: ClipboardList,
     color: '#3b82f6',
-    headline: 'Every investigation begins with a structured case.',
+    headline: 'Every investigation begins with a legally structured case workspace.',
     explanation:
-      'A forensic case is a controlled workspace that links the evidence, the examiner, and the chain of custody. Without a case, evidence has no legal context.',
-    why: 'Courts require that evidence be tied to a documented investigation with a named examiner and an opening date.',
-    input: 'New investigation request',
-    process: [
-      'Assign unique case identifier',
-      'Register lead examiner',
-      'Set classification level',
-      'Initialize audit trail',
+      'A forensic case is a controlled, auditable workspace that binds the evidence, the assigned lead examiner, and the unbroken chain of custody. Without a formal case, evidence lacks legal admissibility.',
+    why: 'Courts require all digital evidence to be tied to a documented investigation with a named examiner, timestamp, and opening authority.',
+    whatWeTake: 'Formal forensic investigation request & incident declaration',
+    whatWeDo: [
+      'Assign unique case identifier: TRACEX-DEMO-001',
+      'Register lead forensic examiner: Demo Examiner',
+      'Enforce hardware/kernel-level O_RDONLY write-blocking',
+      'Initialize cryptographically chained append-only audit trail',
     ],
-    output: 'Case workspace created — DEMO-001',
-    durationMs: 8000,
-    log: [
-      '$ tracex case create',
-      '  Case ID   : DEMO-001',
-      '  Title     : TRACE X Demo Investigation',
-      '  Examiner  : Demo Examiner (SIMULATED)',
-      '  Opened    : ' + new Date().toISOString().slice(0, 10),
-      '  Status    : Active',
-      '',
-      '[OK] Case DEMO-001 created',
-      '[OK] Audit entry #001 written',
-      '[OK] Write-block mode: ENFORCED',
+    whatWeProduce: [
+      'Case Workspace: TRACEX-DEMO-001',
+      'Case Title: Deleted Data Recovery Demonstration',
+      'Examiner Assigned: Demo Examiner',
+      'Audit Genesis Entry #001 (Genesis Block)',
+    ],
+    whereItGoesNext: '02 ADD EVIDENCE',
+    outputSummary: 'Case TRACEX-DEMO-001 initialized — Examiner: Demo Examiner',
+    command: 'tracex case create --id TRACEX-DEMO-001 --examiner "Demo Examiner"',
+    logLines: [
+      '[14:00:01] Initializing forensic case workspace...',
+      '[14:00:02] Assigning case identifier: TRACEX-DEMO-001',
+      '[14:00:02] Registering lead examiner: Demo Examiner',
+      '[14:00:03] Security mode: O_RDONLY write-blocking ENFORCED',
+      '[14:00:03] Audit genesis record #001 written to ledger',
+      '[14:00:04] STEP 01 COMPLETE: Case workspace initialized',
     ],
   },
   {
@@ -77,30 +80,33 @@ const STAGES: DemoStage[] = [
     label: 'ADD EVIDENCE',
     icon: HardDrive,
     color: '#22d3ee',
-    headline: 'Evidence is attached before any analysis begins.',
+    headline: 'Physical and logical disk images are registered into custody.',
     explanation:
-      'A forensic image (RAW, E01, or AFF4) is registered as an evidence source. The file is never modified — only read. The path and size are logged immediately.',
-    why: 'The evidence must be on record before any processing. This creates a clean baseline for the chain of custody.',
-    input: 'demo-evidence-image.img (48 GiB)',
-    process: [
-      'Register evidence source path',
-      'Record file size and format',
-      'Log registration to audit trail',
-      'Prepare for integrity check',
+      'A forensic disk image is registered as an evidence container. The bitstream source is mounted strictly read-only and indexed by size and sector layout before any byte inspection occurs.',
+    why: 'Evidence must be formally registered into the chain of custody prior to any analysis to establish an indisputable evidentiary baseline.',
+    whatWeTake: 'Forensic disk image (demo-evidence-01.raw)',
+    whatWeDo: [
+      'Register evidence image container path',
+      'Verify physical write-blocker & file size (32.0 GiB)',
+      'Enforce immutable read-only permissions (O_RDONLY)',
+      'Link evidence container to Case TRACEX-DEMO-001',
     ],
-    output: 'Evidence source registered — EV-DEMO-001',
-    durationMs: 7000,
-    log: [
-      '$ tracex evidence add --image demo-evidence-image.img',
-      '  Evidence ID : EV-DEMO-001',
-      '  Source      : demo-evidence-image.img',
-      '  Size        : 48.0 GiB',
-      '  Format      : RAW',
-      '  Case        : DEMO-001',
-      '',
-      '[OK] Evidence EV-DEMO-001 registered',
-      '[OK] Audit entry #002 written',
-      '[ ] Hash verification pending...',
+    whatWeProduce: [
+      'Evidence ID: EV-DEMO-001',
+      'Container Path: /evidence/demo-evidence-01.raw',
+      'Bitstream Size: 32.0 GiB (34,359,738,368 bytes)',
+      'Audit Entry #002',
+    ],
+    whereItGoesNext: '03 VERIFY EVIDENCE',
+    outputSummary: 'Evidence EV-DEMO-001 registered — 32.0 GiB RAW image',
+    command: 'tracex evidence add --image demo-evidence-01.raw --case TRACEX-DEMO-001',
+    logLines: [
+      '[14:00:05] Attaching evidence image: demo-evidence-01.raw',
+      '[14:00:06] Verifying read-only access locks (O_RDONLY)...',
+      '[14:00:06] Detected bitstream size: 32.0 GiB (raw sector dump)',
+      '[14:00:07] Registered evidence ID: EV-DEMO-001',
+      '[14:00:07] Audit entry #002 written to secure ledger',
+      '[14:00:08] STEP 02 COMPLETE: Evidence EV-DEMO-001 registered',
     ],
   },
   {
@@ -109,38 +115,34 @@ const STAGES: DemoStage[] = [
     label: 'VERIFY EVIDENCE',
     icon: Hash,
     color: '#a78bfa',
-    headline: 'Integrity is verified before analysis begins.',
+    headline: 'Dual cryptographic hashes establish bitstream integrity.',
     explanation:
-      'TRACE X computes two independent cryptographic hashes (SHA-256 and BLAKE3) of the evidence image. These are stored in the audit log as the baseline fingerprint.',
-    why: 'Any future question about whether the evidence was modified can be answered by recomputing and comparing the hashes.',
-    input: 'EV-DEMO-001 — demo-evidence-image.img',
-    process: [
-      'Open image in read-only mode (O_RDONLY)',
-      'Stream image through SHA-256 algorithm',
-      'Stream image through BLAKE3 algorithm',
-      'Compare against provided hash (if any)',
-      'Record both hashes to audit log',
+      'TRACE X streams the raw image bitstream through SHA-256 and BLAKE3 hashing engines simultaneously. These dual signatures are sealed into the chain of custody.',
+    why: 'Cryptographic proof guarantees that not a single bit of the original digital media was altered during intake or subsequent examination.',
+    whatWeTake: 'Registered evidence source (EV-DEMO-001)',
+    whatWeDo: [
+      'Stream bitstream in hardware-locked O_RDONLY mode',
+      'Calculate cryptographic SHA-256 baseline hash',
+      'Calculate high-throughput BLAKE3 integrity digest',
+      'Record dual-hash fingerprint in chain of custody ledger',
     ],
-    output: 'SHA-256 ✓  BLAKE3 ✓  — SIMULATED RESULT',
-    durationMs: 10000,
-    log: [
-      '$ tracex evidence verify --id EV-DEMO-001',
-      '  Mode        : O_RDONLY (write-blocked)',
-      '',
-      '  Computing SHA-256...',
-      '  ░░░░░░░░░░░░░░░░░░░░  0%',
-      '  ████░░░░░░░░░░░░░░░░  20%',
-      '  ████████░░░░░░░░░░░░  40%',
-      '  ████████████░░░░░░░░  60%',
-      '  ████████████████░░░░  80%',
-      '  ████████████████████  100%',
-      '  SHA-256 : a3f9b2e1...c2d4 [SIMULATED]',
-      '',
-      '  Computing BLAKE3...',
-      '  BLAKE3  : 8d2f1a9c...f6b9 [SIMULATED]',
-      '',
-      '[OK] Verification PASSED (simulated)',
-      '[OK] Audit entry #003 written',
+    whatWeProduce: [
+      'SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      'BLAKE3: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+      'Cryptographic Evidence Fingerprint baseline',
+      'Audit Entry #003',
+    ],
+    whereItGoesNext: '04 ANALYZE EVIDENCE',
+    outputSummary: 'SHA-256 & BLAKE3 Verified — Bitstream integrity locked',
+    command: 'tracex evidence verify --id EV-DEMO-001 --algorithms sha256,blake3',
+    logLines: [
+      '[14:00:09] Beginning bitstream cryptographic verification...',
+      '[14:00:10] Streaming image blocks through SHA-256 engine...',
+      '[14:00:11] SHA-256: e3b0c442...7852b855 [VERIFIED]',
+      '[14:00:11] Streaming image blocks through BLAKE3 engine...',
+      '[14:00:12] BLAKE3 : 4f53cda1...1202b945 [VERIFIED]',
+      '[14:00:12] Audit entry #003 written: Dual-hash baseline recorded',
+      '[14:00:13] STEP 03 COMPLETE: Evidence integrity verified',
     ],
   },
   {
@@ -149,903 +151,889 @@ const STAGES: DemoStage[] = [
     label: 'ANALYZE EVIDENCE',
     icon: ScanLine,
     color: '#fbbf24',
-    headline: 'TRACE X maps the filesystem geometry.',
+    headline: 'TRACE X decodes and maps the underlying filesystem geometry.',
     explanation:
-      'The filesystem on the image is parsed: superblock, allocation group headers, B-tree structures, and inode tables are all mapped. This tells TRACE X where files live and where deleted files may still exist.',
-    why: 'Without understanding the filesystem layout, we cannot know where to look for deleted file remnants.',
-    input: 'EV-DEMO-001 — XFS v5 image',
-    process: [
-      'Read and validate XFS superblock',
-      'Map 8 allocation group (AG) headers',
-      'Traverse inode B-trees per AG',
-      'Traverse extent B-trees',
-      'Catalogue free space blocks',
-      'Build complete filesystem geometry',
+      'The partition and filesystem structures are parsed: superblock, allocation group headers, B-tree indexes, and inode allocation tables are mapped across all 8 allocation groups.',
+    why: 'Understanding filesystem architecture enables the engine to know exactly where live data resides and where deleted file structures remain unallocated.',
+    whatWeTake: 'Verified bitstream image (EV-DEMO-001)',
+    whatWeDo: [
+      'Inspect sector 0 and parse XFS primary Superblock (0x58465342)',
+      'Map 8 Allocation Groups (AG 0–7) geometry',
+      'Traverse Inode B+ trees and Extent allocation maps',
+      'Index unallocated free space clusters for deleted artifact hunt',
     ],
-    output: 'Filesystem mapped — 1,847,302 inodes, 94,182 free clusters',
-    durationMs: 12000,
-    log: [
-      '$ tracex analyze --evidence EV-DEMO-001 --fs xfs',
-      '',
-      '  Reading superblock at 0x0000...',
-      '  Magic : 0x58465342 (XFSB) ✓',
-      '  Filesystem: XFS v5 | Block size: 4096 B',
-      '  Allocation groups: 8',
-      '',
-      '  Traversing AG[0]... 230,912 inodes',
-      '  Traversing AG[1]... 231,048 inodes',
-      '  Traversing AG[2]... 230,187 inodes',
-      '  Traversing AG[3]... 229,944 inodes',
-      '  Traversing AG[4]... 231,523 inodes',
-      '  Traversing AG[5]... 230,712 inodes',
-      '  Traversing AG[6]... 231,089 inodes',
-      '  Traversing AG[7]... 231,887 inodes',
-      '',
-      '[OK] 1,847,302 live inodes mapped',
-      '[OK] 94,182 free clusters catalogued',
-      '[OK] Audit entry #004 written',
+    whatWeProduce: [
+      'Filesystem: XFS v5 (Block size: 4096 B, AG count: 8)',
+      'Live Inodes mapped: 1,847,302',
+      'Unallocated clusters catalogued: 94,182 blocks',
+      'Audit Entry #004',
+    ],
+    whereItGoesNext: '05 FIND DELETED ARTIFACTS',
+    outputSummary: 'XFS v5 mapped — 1,847,302 inodes, 94,182 free clusters',
+    command: 'tracex analyze --evidence EV-DEMO-001 --fs xfs --deep-map',
+    logLines: [
+      '[14:00:14] Inspecting partition table and primary superblock...',
+      '[14:00:14] Detected filesystem: XFS v5 (magic: 0x58465342)',
+      '[14:00:15] Mapping 8 allocation groups (AG 0 through 7)...',
+      '[14:00:16] Scanning Inode B+ trees: 1,847,302 live inodes indexed',
+      '[14:00:16] Cataloguing unallocated free space: 94,182 clusters',
+      '[14:00:17] Audit entry #004 written: Filesystem geometry mapped',
+      '[14:00:17] STEP 04 COMPLETE: XFS filesystem analyzed',
     ],
   },
   {
     num: '05',
     id: 'find-deleted',
     label: 'FIND DELETED ARTIFACTS',
-    icon: FileX2,
+    icon: Search,
     color: '#f43f5e',
-    headline: 'Deleted files leave traces in filesystem structures.',
+    headline: 'Deleted files leave discoverable footprints in filesystem remnants.',
     explanation:
-      'When a file is deleted, its inode record (di_nlink == 0) may still exist. Extent maps may point to data blocks that haven\'t been overwritten. TRACE X scans for all of these.',
-    why: 'Files deleted by an attacker or user are often still physically present on disk. The filesystem just no longer references them through the normal directory tree.',
-    input: 'Filesystem geometry from Step 04',
-    process: [
-      'Scan each AG for inodes with di_nlink == 0',
-      'Identify extents pointing to unallocated blocks',
-      'Run block-level signature carving (PDF, JPEG, ELF, SQLite)',
-      'Classify each candidate by confidence',
+      'When files are deleted, unlinked inodes (di_nlink == 0) and orphan extent pointers often persist. TRACE X scans unallocated space and carves known file header signatures.',
+    why: 'Deleted data is not immediately destroyed on disk; identifying its residual pointers allows forensically sound recovery.',
+    whatWeTake: 'Filesystem map and unallocated clusters from Step 04',
+    whatWeDo: [
+      'Scan Allocation Groups for unlinked inodes (di_nlink == 0)',
+      'Trace extent maps pointing to unallocated block runs',
+      'Perform block-level signature carving (magic headers)',
+      'Classify and score deleted candidates by forensic confidence',
     ],
-    output: '112 deleted file candidates — HIGH: 73 | MEDIUM: 31 | LOW: 8',
-    durationMs: 12000,
-    log: [
-      '$ tracex discover --strategy all --min-confidence medium',
-      '',
-      '  Strategy 1/3: Inode scan (di_nlink == 0)',
-      '  AG[0] → 14 unlinked inodes',
-      '  AG[1] → 23 unlinked inodes',
-      '  AG[2] → 19 unlinked inodes',
-      '  AG[3] → 31 unlinked inodes',
-      '  (remaining AGs)...',
-      '',
-      '  Strategy 2/3: Extent map reconstruction',
-      '  87 recoverable extents with intact metadata',
-      '',
-      '  Strategy 3/3: Block-level signature carving',
-      '  JPEG: 4  |  PDF: 3  |  SQLite: 2  |  ELF: 2  |  ZIP: 1',
-      '',
-      '[OK] Candidates: 112 [SIMULATED]',
-      '[OK] HIGH: 73  MEDIUM: 31  LOW: 8',
-      '[OK] Audit entry #005 written',
+    whatWeProduce: [
+      '3 High-Confidence Deleted Artifacts found:',
+      '• financial_audit_2026.pdf (Inode #482910, 100% confidence)',
+      '• customer_records.sqlite (Inode #482915, 96% confidence)',
+      '• system_auth.log (Inode #482922, 100% confidence)',
+      'Audit Entry #005',
+    ],
+    whereItGoesNext: '06 RECOVER ARTIFACTS',
+    outputSummary: '3 critical deleted artifacts discovered (confidence >= 95%)',
+    command: 'tracex discover --case TRACEX-DEMO-001 --strategy unlinked-inodes,carve',
+    logLines: [
+      '[14:00:18] Scanning for unlinked inodes with di_nlink == 0...',
+      '[14:00:19] [DISCOVERED] Inode 482910: PDF signature at extent 0x3F8200',
+      '[14:00:19] [DISCOVERED] Inode 482915: SQLite header at extent 0x4A1000',
+      '[14:00:20] [DISCOVERED] Inode 482922: Text log run at extent 0x5C2400',
+      '[14:00:21] Classified 3 critical deleted artifacts (confidence >= 95%)',
+      '[14:00:21] Audit entry #005 written: 3 candidate artifacts catalogued',
+      '[14:00:22] STEP 05 COMPLETE: 3 deleted artifacts discovered',
     ],
   },
   {
     num: '06',
-    id: 'recover',
+    id: 'recover-artifacts',
     label: 'RECOVER ARTIFACTS',
     icon: FileCheck2,
     color: '#34d399',
-    headline: 'File content is reconstructed from disk remnants.',
+    headline: 'File data streams are reassembled from physical block extents.',
     explanation:
-      'For each candidate, TRACE X reads the extent map and reassembles blocks into a file. Fragmented files are handled by stitching discontinuous block ranges. Each recovered file gets a unique ID.',
-    why: 'The goal of forensic recovery is to produce the actual file content, not just metadata. The recovered file can then be examined as evidence.',
-    input: '104 high/medium confidence candidates from Step 05',
-    process: [
-      'Read extents for each candidate (read-only)',
-      'Reassemble contiguous and fragmented blocks',
-      'Handle gaps with gap-fill markers',
-      'Write recovered file to isolated output path',
-      'Compute per-file hash for integrity',
+      'For each discovered candidate, TRACE X reads the physical disk extents and stitches contiguous and fragmented blocks back into complete file streams in an isolated quarantine vault.',
+    why: 'Digital forensics requires extracting verifiable file content, not just raw disk coordinates, so files can be analyzed and submitted as evidence.',
+    whatWeTake: '3 candidate artifacts and extent maps from Step 05',
+    whatWeDo: [
+      'Read disk extents from raw image bitstream (read-only)',
+      'Stitch contiguous and fragmented block extents into memory',
+      'Extract byte streams into isolated forensic recovery vault',
+      'Calculate per-file SHA-256 checksums',
     ],
-    output: '98 files recovered — 89 at 100% integrity, 9 partial',
-    durationMs: 14000,
-    log: [
-      '$ tracex recover --candidates HIGH,MEDIUM --output /demo/recovered/',
-      '',
-      '  Processing 104 candidates...',
-      '  [1/104]  contracts_Q3.pdf       → 4 extents  → 100%',
-      '  [2/104]  employee_db.sqlite     → 12 extents → 97.4% (2 gaps)',
-      '  [3/104]  access_log_sep.txt     → 1 extent   → 100%',
-      '  [4/104]  net_capture_eth0.pcap  → 8 extents  → 100%',
-      '  ...',
-      '',
-      '  Progress: ░░░░░░░░░░░░░░░░░░░░   0%',
-      '  Progress: █████░░░░░░░░░░░░░░░  25%',
-      '  Progress: ██████████░░░░░░░░░░  50%',
-      '  Progress: ███████████████░░░░░  75%',
-      '  Progress: ████████████████████ 100%',
-      '',
-      '[OK] Recovered: 98 / 104 candidates [SIMULATED]',
-      '[OK] Full integrity: 89 files',
-      '[OK] Audit entry #006 written',
+    whatWeProduce: [
+      'financial_audit_2026.pdf (4.2 MB) — 100% blocks recovered',
+      'customer_records.sqlite (18.6 MB) — 100% blocks recovered',
+      'system_auth.log (840 KB) — 100% blocks recovered',
+      'Recovery Rate: 3 of 3 artifacts recovered (100%)',
+      'Audit Entry #006',
+    ],
+    whereItGoesNext: '07 VALIDATE RESULTS',
+    outputSummary: '3 of 3 artifacts reconstructed — 100% block integrity',
+    command: 'tracex recover --artifacts all --output-vault /evidence/recovered/',
+    logLines: [
+      '[14:00:23] Initiating block reassembly from extents...',
+      '[14:00:24] [1/3] Reassembling financial_audit_2026.pdf (4.2 MB)... 100%',
+      '[14:00:25] [2/3] Reassembling customer_records.sqlite (18.6 MB)... 100%',
+      '[14:00:25] [3/3] Reassembling system_auth.log (840 KB)... 100%',
+      '[14:00:26] Writing recovered artifacts to quarantined vault path...',
+      '[14:00:26] Audit entry #006 written: 3 artifacts recovered',
+      '[14:00:27] STEP 06 COMPLETE: 3 artifacts successfully recovered',
     ],
   },
   {
     num: '07',
-    id: 'validate',
+    id: 'validate-results',
     label: 'VALIDATE RESULTS',
     icon: ShieldCheck,
     color: '#10b981',
-    headline: 'Every recovered artifact is independently verified.',
+    headline: 'Every recovered file is independently validated for integrity.',
     explanation:
-      'TRACE X checks each recovered file through multiple independent signals: file magic bytes, internal structure, checksum, MACB timestamps, and metadata consistency. Each gets an explicit provenance tag.',
-    why: 'Validation makes the difference between a file you "found" and a file you can defend in court. Every artifact must carry provenance.',
-    input: '98 recovered files from Step 06',
-    process: [
-      'Match file magic bytes against known signatures',
-      'Validate internal file structure (PDF xref, SQLite header, etc.)',
-      'Recompute and verify per-file hash',
-      'Cross-check MACB timestamps with filesystem records',
-      'Assign provenance: RECOVERED | INFERRED | DERIVED',
+      'TRACE X checks each recovered file against multiple signals: magic bytes, internal structure (PDF xref table, SQLite B-tree pages), timestamp coherence, and checksums.',
+    why: 'Evidence is only admissible if you can legally prove it was recovered cleanly and not corrupted or fabricated during extraction.',
+    whatWeTake: '3 recovered artifacts from Step 06',
+    whatWeDo: [
+      'Validate magic headers and internal file structure (PDF xref, SQLite header)',
+      'Cross-check MACB timestamps against filesystem journal records',
+      'Recompute and verify independent file hash integrity',
+      'Assign formal legal provenance category: RECOVERED',
     ],
-    output: 'RECOVERED (≥0.85): 89 files | INFERRED: 9 files | UNKNOWN: 0',
-    durationMs: 10000,
-    log: [
-      '$ tracex validate --all --signals magic,structure,hash,macb',
-      '',
-      '  contracts_Q3.pdf',
-      '  [✓] Magic: PDF-1.7',
-      '  [✓] Structure: valid xref table',
-      '  [✓] Hash verified (independent)',
-      '  [✓] mtime: 2026-09-13T22:14:55Z',
-      '  → RECOVERED  confidence: 0.97',
-      '',
-      '  employee_db.sqlite',
-      '  [✓] Magic: SQLite 3.x',
-      '  [✓] Page checksum: PASS',
-      '  [~] 2 gap-filled blocks',
-      '  → INFERRED   confidence: 0.81',
-      '',
-      '[OK] RECOVERED: 89  INFERRED: 9  UNKNOWN: 0 [SIMULATED]',
-      '[OK] Audit entry #007 written',
+    whatWeProduce: [
+      'Validation Status: PASSED (3 / 3 verified intact)',
+      'Provenance Category: RECOVERED (Confidence: 1.00)',
+      'Integrity verification certificates for all 3 files',
+      'Audit Entry #007',
+    ],
+    whereItGoesNext: '08 GENERATE REPORT',
+    outputSummary: 'Validation PASSED — 3 artifacts verified with intact provenance',
+    command: 'tracex validate --vault /evidence/recovered/ --signals all',
+    logLines: [
+      '[14:00:28] Executing multi-signal validation suite...',
+      '[14:00:29] [VALIDATED] financial_audit_2026.pdf: PDF-1.7 xref table intact',
+      '[14:00:29] [VALIDATED] customer_records.sqlite: SQLite page checksums valid',
+      '[14:00:30] [VALIDATED] system_auth.log: UTF-8 encoding valid, no corruptions',
+      '[14:00:31] Validation grade: PASSED (3/3 artifacts verified)',
+      '[14:00:31] Audit entry #007 written: Artifact validation complete',
+      '[14:00:32] STEP 07 COMPLETE: Forensic validation PASSED',
     ],
   },
   {
     num: '08',
-    id: 'report',
+    id: 'generate-report',
     label: 'GENERATE REPORT',
     icon: ScrollText,
     color: '#f97316',
-    headline: 'A court-ready report is assembled from the full investigation.',
+    headline: 'A comprehensive, tamper-evident forensic report is assembled.',
     explanation:
-      'TRACE X compiles the case metadata, evidence records, analysis results, recovery manifest, validation scores, and complete audit trail into a structured forensic report.',
-    why: 'Forensic findings are only useful in legal proceedings if they are documented in a methodology-transparent, tamper-evident report.',
-    input: 'Case + Evidence + Analysis + Recovery + Validation + Audit',
-    process: [
-      'Compile investigation methodology section',
-      'Embed evidence acquisition metadata',
-      'Include recovery and validation manifest',
-      'Attach chain of custody (47 events)',
-      'Generate report hash for tamper detection',
-      'Export HTML, PDF, JSON, CSV formats',
+      'TRACE X compiles the entire investigative history: case parameters, evidence acquisition hashes, discovery methodology, recovery manifests, and validation certificates.',
+    why: 'Forensic findings must be documented in a transparent, methodology-backed report ready for judicial review.',
+    whatWeTake: 'Case metadata, evidence hashes, recovered artifacts, validation certificates',
+    whatWeDo: [
+      'Compile forensic examination methodology section',
+      'Embed evidence acquisition metadata and dual cryptographic hashes',
+      'Attach artifact recovery manifest and validation certificates',
+      'Sign report cryptographically with SHA-256 seal',
     ],
-    output: 'TRACE X DEMONSTRATION REPORT — SIMULATED DATA',
-    durationMs: 10000,
-    log: [
-      '$ tracex report --case DEMO-001 --format all',
-      '',
-      '  Compiling methodology...',
-      '  Embedding evidence metadata...',
-      '  Attaching recovery manifest (98 artifacts)...',
-      '  Attaching validation manifest (89 RECOVERED)...',
-      '  Embedding audit trail (47 events)...',
-      '  Computing report hash...',
-      '',
-      '  → demo_report.html  (2.4 MB) [SIMULATED]',
-      '  → demo_report.pdf   (3.1 MB) [SIMULATED]',
-      '  → demo_report.json  (847 KB) [SIMULATED]',
-      '  → demo_manifest.csv (124 KB) [SIMULATED]',
-      '',
-      '[OK] Report hash: c7f2a9b3... [SIMULATED]',
-      '[OK] Audit entry #008 written',
+    whatWeProduce: [
+      'Court-Ready Examination Report: TRACEX-DEMO-001-REPORT',
+      'Digital Signature Seal: 9b2a7d4e3f... [VERIFIED]',
+      'Multi-format export bundle: PDF, HTML, JSON, CSV',
+      'Audit Entry #008',
+    ],
+    whereItGoesNext: '09 AUDIT TRAIL',
+    outputSummary: 'Court-ready report package generated — Cryptographically sealed',
+    command: 'tracex report generate --case TRACEX-DEMO-001 --format all --seal',
+    logLines: [
+      '[14:00:33] Assembling court-ready forensic report package...',
+      '[14:00:34] Embedding chain of custody and evidence hash manifests...',
+      '[14:00:35] Embedding recovery catalog for 3 validated artifacts...',
+      '[14:00:35] Generating cryptographic report seal (SHA-256)...',
+      '[14:00:36] Export packages built: PDF, HTML, JSON, CSV',
+      '[14:00:36] Audit entry #008 written: Report generated',
+      '[14:00:37] STEP 08 COMPLETE: Court-ready report generated',
     ],
   },
   {
     num: '09',
-    id: 'audit',
+    id: 'audit-trail',
     label: 'AUDIT TRAIL',
     icon: ClipboardList,
     color: '#8b5cf6',
-    headline: 'Every action in this investigation was recorded.',
+    headline: 'The immutable, cryptographically chained audit log is sealed.',
     explanation:
-      'The audit trail is an append-only log of every operation: who did what, when, and to which evidence. It cannot be edited. It is included in the final report.',
-    why: 'Chain of custody requires that every action on evidence be documented. If any step is questioned, the audit log provides the authoritative record.',
-    input: 'All operations from Steps 01–08',
-    process: [
-      'Review append-only audit log',
-      'Verify cryptographic chain (each entry references the previous)',
-      'Display all 8 major workflow events',
+      'Every operation throughout the investigation was recorded into an append-only ledger. TRACE X verifies that each entry references the hash of the preceding record without gap or modification.',
+    why: 'An unbroken, cryptographically verifiable chain of custody is required to defend findings against claims of evidence tampering.',
+    whatWeTake: 'Append-only audit log records #001 through #008',
+    whatWeDo: [
+      'Inspect append-only sequence from genesis block to current state',
+      'Verify SHA-256 cryptographic chaining (hash-linked entries)',
+      'Verify zero gaps, modifications, or deletions in the ledger',
+      'Seal final investigation audit ledger',
     ],
-    output: '8 audit events — cryptographically chained [SIMULATED]',
-    durationMs: 8000,
-    log: [
-      '$ tracex audit --case DEMO-001 --verify',
-      '',
-      '  #001  CASE_CREATED          2026-10-03T16:00:00Z [DEMO]',
-      '  #002  EVIDENCE_ADDED        2026-10-03T16:00:08Z [DEMO]',
-      '  #003  VERIFICATION_STARTED  2026-10-03T16:00:15Z [DEMO]',
-      '  #004  ANALYSIS_STARTED      2026-10-03T16:00:25Z [DEMO]',
-      '  #005  CANDIDATES_IDENTIFIED 2026-10-03T16:01:37Z [DEMO]',
-      '  #006  RECOVERY_STARTED      2026-10-03T16:02:58Z [DEMO]',
-      '  #007  VALIDATION_COMPLETED  2026-10-03T16:04:12Z [DEMO]',
-      '  #008  REPORT_GENERATED      2026-10-03T16:05:02Z [DEMO]',
-      '',
-      '[OK] Chain integrity: VERIFIED (simulated)',
-      '[OK] 8 events — no gaps detected',
+    whatWeProduce: [
+      'Chain of Custody: COMPLETE',
+      'Audit Trail: COMPLETE (9 verified sequential entries)',
+      'Ledger Tamper-Resistance: 100% VERIFIED',
+      'Audit Entry #009 (Final Ledger Seal)',
+    ],
+    whereItGoesNext: 'INVESTIGATION COMPLETE',
+    outputSummary: 'Audit Trail COMPLETE — 9 entries cryptographically sealed',
+    command: 'tracex audit verify --case TRACEX-DEMO-001 --seal-final',
+    logLines: [
+      '[14:00:38] Inspecting append-only audit trail ledger...',
+      '[14:00:39] Verifying cryptographic hash chain (#001 → #008)...',
+      '[14:00:39] Chain integrity check: 100% VALID — no gaps detected',
+      '[14:00:40] Confirming immutable timestamp sequence...',
+      '[14:00:41] Audit entry #009 written: Final case ledger sealed',
+      '[14:00:41] STEP 09 COMPLETE: Audit trail verified and sealed',
     ],
   },
 ];
 
-// ─── Pipeline breadcrumb component ───────────────────────────────────────────
-
-function PipelineBar({ activeIdx, completedIdxs }: { activeIdx: number; completedIdxs: Set<number> }) {
-  return (
-    <div className="overflow-x-auto">
-      <div className="flex items-center min-w-max gap-0">
-        {STAGES.map((s, i) => {
-          const Icon = s.icon;
-          const done = completedIdxs.has(i);
-          const active = activeIdx === i;
-          const pending = !done && !active;
-          return (
-            <div key={s.id} className="flex items-center">
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all duration-500 ${
-                  active
-                    ? 'bg-[#0c1a2e] border'
-                    : done
-                      ? 'text-[#34d399]'
-                      : 'text-[#2d3748]'
-                }`}
-                style={active ? { borderColor: `${s.color}40`, color: s.color } : undefined}
-              >
-                {done ? (
-                  <CheckCircle2 className="w-3 h-3 text-[#34d399]" />
-                ) : active ? (
-                  <motion.div
-                    animate={{ opacity: [1, 0.4, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                  >
-                    <Circle className="w-3 h-3 fill-current" style={{ color: s.color }} />
-                  </motion.div>
-                ) : (
-                  <Circle className="w-3 h-3" />
-                )}
-                <span className={pending ? 'hidden sm:inline' : ''}>{s.num}</span>
-                <span className="hidden md:inline">{s.label}</span>
-              </div>
-              {i < STAGES.length - 1 && (
-                <ChevronRight className={`w-3 h-3 mx-0.5 flex-shrink-0 ${done ? 'text-[#34d399]/50' : 'text-[#1c2536]'}`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Log terminal ─────────────────────────────────────────────────────────────
-
-function StageTerminal({ lines, speed }: { lines: string[]; speed: number }) {
-  const [shown, setShown] = useState<string[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const linesKey = lines.join('|');
-
-  useEffect(() => {
-    setShown([]);
-    let i = 0;
-    // At 1x: 350ms/line — leisurely, readable pace
-    const interval = setInterval(() => {
-      if (i < lines.length) {
-        setShown(prev => [...prev, lines[i]]);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, Math.max(80, Math.round(350 / speed)));
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linesKey, speed]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [shown]);
-
-  return (
-    <div className="rounded-xl bg-[#050811] border border-[#1c2536] overflow-hidden flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-2 bg-[#090c16] border-b border-[#1c2536] flex-shrink-0">
-        <div className="flex gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-[#f43f5e]/60" />
-          <div className="w-2 h-2 rounded-full bg-[#fbbf24]/60" />
-          <div className="w-2 h-2 rounded-full bg-[#34d399]/60" />
-        </div>
-        <span className="text-[10px] font-mono text-[#3b82f6] ml-1 font-bold tracking-widest">forensic-core</span>
-        <span className="ml-auto text-[9px] font-mono text-[#2d3748] flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#f43f5e]/60 inline-block" />
-          SIMULATED OUTPUT
-        </span>
-      </div>
-      <div className="p-4 font-mono text-[11px] leading-[1.65] min-h-[200px] max-h-[300px] overflow-y-auto flex-1">
-        {shown.map((line, i) => (
-          <div
-            key={i}
-            className={`${
-              line.startsWith('[OK]') ? 'text-[#34d399]' :
-              line.startsWith('[ERR]') ? 'text-[#f43f5e]' :
-              line.startsWith('$') ? 'text-[#60a5fa] font-bold' :
-              line.startsWith('  [✓]') ? 'text-[#34d399] pl-4' :
-              line.startsWith('  [~]') ? 'text-[#fbbf24] pl-4' :
-              line.startsWith('  →') ? 'text-[#a78bfa] pl-4' :
-              line.includes('RECOVERED') ? 'text-[#34d399] font-bold' :
-              line.includes('INFERRED') ? 'text-[#fbbf24] font-bold' :
-              line.includes('[SIMULATED]') || line.includes('[DEMO]') ? 'text-[#4a5568]' :
-              'text-[#94a3b8]'
-            }`}
-          >
-            {line || '\u00a0'}
-          </div>
-        ))}
-        {shown.length < lines.length && (
-          <span className="animate-pulse text-[#3b82f6] text-sm">▋</span>
-        )}
-        <div ref={bottomRef} />
-      </div>
-    </div>
-  );
-}
-
-// ─── Step info card ───────────────────────────────────────────────────────────
-
-function StepInfoCard({
-  stage, isActive, isComplete, speed
-}: {
-  stage: DemoStage;
-  isActive: boolean;
-  isComplete: boolean;
-  speed: number;
-}) {
-  const [processIdx, setProcessIdx] = useState(-1);
-
-  useEffect(() => {
-    if (!isActive) { setProcessIdx(-1); return; }
-    setProcessIdx(-1);
-    let i = 0;
-    // Reveal one sub-step every ~2s at 1x
-    const interval = setInterval(() => {
-      if (i < stage.process.length) {
-        setProcessIdx(i);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, Math.max(500, Math.round(2000 / speed)));
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, stage.id, speed]);
-
-  const statusColor = isComplete ? '#34d399' : isActive ? stage.color : '#2d3748';
-  const statusLabel = isComplete ? 'COMPLETE' : isActive ? 'RUNNING' : 'PENDING';
-
-  return (
-    <div
-      className="rounded-2xl border overflow-hidden relative"
-      style={{
-        background: `linear-gradient(135deg, ${stage.color}06 0%, #090c16 100%)`,
-        borderColor: isActive ? `${stage.color}30` : '#1c2536',
-      }}
-    >
-      {/* Top accent */}
-      {isActive && (
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${stage.color}50, transparent)` }} />
-      )}
-
-      <div className="p-5 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: `${stage.color}12`, border: `1px solid ${stage.color}25` }}
-            >
-              <stage.icon className="w-6 h-6" style={{ color: stage.color }} />
-            </div>
-            <div>
-              <div className="text-[9px] font-mono tracking-widest" style={{ color: stage.color }}>
-                STEP {stage.num} OF {STAGES.length}
-              </div>
-              <div className="text-base font-bold text-white font-mono">{stage.label}</div>
-            </div>
-          </div>
-          {/* STATUS */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border"
-            style={{ color: statusColor, borderColor: `${statusColor}30`, background: `${statusColor}08` }}
-          >
-            {isComplete ? (
-              <CheckCircle2 className="w-3 h-3" />
-            ) : isActive ? (
-              <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }}>
-                <Loader2 className="w-3 h-3 animate-spin" />
-              </motion.div>
-            ) : (
-              <Circle className="w-3 h-3" />
-            )}
-            {statusLabel}
-          </div>
-        </div>
-
-        {/* INPUT */}
-        <div className="space-y-1">
-          <div className="text-[9px] font-mono font-bold text-[#4a5568] tracking-widest uppercase">INPUT</div>
-          <div className="text-[12px] font-mono text-[#94a3b8] bg-[#050811] border border-[#1c2536] px-3 py-2 rounded-lg">
-            {stage.input}
-          </div>
-        </div>
-
-        {/* PROCESS */}
-        <div className="space-y-1.5">
-          <div className="text-[9px] font-mono font-bold text-[#4a5568] tracking-widest uppercase">PROCESS</div>
-          <div className="space-y-1">
-            {stage.process.map((p, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-2 text-[11px] font-mono px-2 py-1 rounded transition-all duration-500 ${
-                  i <= processIdx ? 'text-[#94a3b8]' : 'text-[#2d3748]'
-                }`}
-              >
-                {i < processIdx ? (
-                  <CheckCircle2 className="w-3 h-3 text-[#34d399] flex-shrink-0" />
-                ) : i === processIdx ? (
-                  <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 0.8, repeat: Infinity }}>
-                    <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" style={{ color: stage.color }} />
-                  </motion.div>
-                ) : (
-                  <Circle className="w-3 h-3 flex-shrink-0 text-[#1c2536]" />
-                )}
-                <span>{p}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* OUTPUT */}
-        <div className="space-y-1">
-          <div className="text-[9px] font-mono font-bold text-[#4a5568] tracking-widest uppercase">OUTPUT</div>
-          <div
-            className={`text-[12px] font-mono px-3 py-2 rounded-lg border transition-all duration-700 ${
-              isComplete
-                ? 'text-[#34d399] border-[#34d399]/25 bg-[#052019]'
-                : 'text-[#2d3748] border-[#1c2536] bg-[#050811]'
-            }`}
-          >
-            {isComplete ? stage.output : '— awaiting completion —'}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── "WHAT IS HAPPENING?" panel ───────────────────────────────────────────────
-
-function ExplainerPanel({ stage }: { stage: DemoStage }) {
-  return (
-    <motion.div
-      key={stage.id}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      className="p-4 rounded-xl bg-[#070b16] border border-[#1c2536] space-y-3"
-    >
-      <div className="text-[9px] font-mono font-bold text-[#4a5568] tracking-widest">WHAT IS HAPPENING?</div>
-      <p className="text-[12px] text-[#94a3b8] leading-relaxed">{stage.explanation}</p>
-      <div className="pt-2 border-t border-[#131d33]">
-        <div className="text-[9px] font-mono font-bold text-[#4a5568] tracking-widest mb-1">WHY?</div>
-        <p className="text-[11px] text-[#64748b] leading-relaxed">{stage.why}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── MAIN DEMO PAGE ──────────────────────────────────────────────────────────
+type StepStatus = 'pending' | 'running' | 'paused' | 'completed';
 
 export default function DemoPage() {
   const navigate = useNavigate();
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [completedIdxs, setCompletedIdxs] = useState<Set<number>>(new Set());
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [mode, setMode] = useState<'auto' | 'guided'>('auto');
-  const [speed, setSpeed] = useState(1.0);
-  const [guidedWaiting, setGuidedWaiting] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [terminalKey, setTerminalKey] = useState(0);
 
-  const stageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Active step index (0 to 8)
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const currentStage = STAGES[activeIdx];
-  const isAllComplete = completedIdxs.size === STAGES.length;
+  // Status for each step
+  const [stepStatuses, setStepStatuses] = useState<Record<number, StepStatus>>({
+    0: 'pending',
+    1: 'pending',
+    2: 'pending',
+    3: 'pending',
+    4: 'pending',
+    5: 'pending',
+    6: 'pending',
+    7: 'pending',
+    8: 'pending',
+  });
 
-  // Complete current stage and advance
-  const completeAndAdvance = useCallback(() => {
-    setCompletedIdxs(prev => new Set([...prev, activeIdx]));
-    if (activeIdx < STAGES.length - 1) {
-      if (mode === 'guided') {
-        setIsPlaying(false);
-        setGuidedWaiting(true);
-      } else {
-        // Auto mode — 2.5s natural pause between stages
-        stageTimerRef.current = setTimeout(() => {
-          setActiveIdx(i => i + 1);
-          setTerminalKey(k => k + 1);
-        }, 2500);
+  // Track the number of displayed actions (0 to 4) and log lines for each step
+  const [actionProgress, setActionProgress] = useState<Record<number, number>>({
+    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0,
+  });
+
+  const [displayedLogs, setDisplayedLogs] = useState<Record<number, string[]>>({
+    0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [],
+  });
+
+  // Final summary view shown when Step 09 completes and user clicks Next
+  const [showFinalSummary, setShowFinalSummary] = useState(false);
+
+  // Timer ref for executing sequential actions/logs
+  const executionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement | null>(null);
+
+  const activeStage = STAGES[currentStepIndex];
+  const currentStatus = stepStatuses[currentStepIndex] || 'pending';
+  const currentActionCount = actionProgress[currentStepIndex] || 0;
+  const currentLogs = displayedLogs[currentStepIndex] || [];
+
+  // Completed steps set
+  const completedSteps = Object.entries(stepStatuses)
+    .filter(([_, status]) => status === 'completed')
+    .map(([idx]) => Number(idx));
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+    };
+  }, []);
+
+  // Auto scroll terminal
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentLogs.length]);
+
+  // ─── RUN STEP Handler ───────────────────────────────────────────────────────
+  const handleRunStep = useCallback(() => {
+    if (currentStatus === 'running') return;
+
+    // Set status to running
+    setStepStatuses(prev => ({ ...prev, [currentStepIndex]: 'running' }));
+
+    const stage = STAGES[currentStepIndex];
+    let logIdx = displayedLogs[currentStepIndex]?.length || 0;
+    let actIdx = actionProgress[currentStepIndex] || 0;
+
+    if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+
+    // Each step takes approx 3.6 seconds (6 log lines * 600ms = 3.6s)
+    executionTimerRef.current = setInterval(() => {
+      logIdx++;
+
+      // Compute action count based on log progress (4 actions mapped over 6 log lines)
+      const newActIdx = Math.min(stage.whatWeDo.length, Math.floor((logIdx / stage.logLines.length) * (stage.whatWeDo.length + 1)));
+      actIdx = newActIdx;
+
+      setDisplayedLogs(prev => ({
+        ...prev,
+        [currentStepIndex]: stage.logLines.slice(0, logIdx),
+      }));
+
+      setActionProgress(prev => ({
+        ...prev,
+        [currentStepIndex]: actIdx,
+      }));
+
+      // When all logs are printed, complete the step
+      if (logIdx >= stage.logLines.length) {
+        if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+        executionTimerRef.current = null;
+
+        setStepStatuses(prev => ({ ...prev, [currentStepIndex]: 'completed' }));
+        setActionProgress(prev => ({ ...prev, [currentStepIndex]: stage.whatWeDo.length }));
       }
-    } else {
-      setIsPlaying(false);
+    }, 600);
+  }, [currentStepIndex, currentStatus, displayedLogs, actionProgress]);
+
+  // ─── PAUSE Handler ──────────────────────────────────────────────────────────
+  const handlePause = useCallback(() => {
+    if (currentStatus === 'running') {
+      if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+      executionTimerRef.current = null;
+      setStepStatuses(prev => ({ ...prev, [currentStepIndex]: 'paused' }));
     }
-  }, [activeIdx, mode]);
+  }, [currentStatus, currentStepIndex]);
 
-  // Auto-advance timer
-  useEffect(() => {
-    if (stageTimerRef.current) clearTimeout(stageTimerRef.current);
-    if (!isPlaying || guidedWaiting) return;
-
-    const duration = Math.max(4000, currentStage.durationMs / speed);
-    stageTimerRef.current = setTimeout(completeAndAdvance, duration);
-
-    return () => { if (stageTimerRef.current) clearTimeout(stageTimerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, activeIdx, speed, guidedWaiting]);
-
-  // Elapsed timer
-  useEffect(() => {
-    if (isPlaying && !guidedWaiting) {
-      elapsedRef.current = setInterval(() => setElapsedMs(e => e + 100), 100);
-    } else {
-      if (elapsedRef.current) clearInterval(elapsedRef.current);
+  // ─── RESUME Handler ─────────────────────────────────────────────────────────
+  const handleResume = useCallback(() => {
+    if (currentStatus === 'paused') {
+      handleRunStep();
     }
-    return () => { if (elapsedRef.current) clearInterval(elapsedRef.current); };
-  }, [isPlaying, guidedWaiting]);
+  }, [currentStatus, handleRunStep]);
 
-  const handlePlay = () => {
-    if (isAllComplete) return;
-    setIsPlaying(true);
-    setGuidedWaiting(false);
-    setTerminalKey(k => k + 1);
-  };
+  // ─── NEXT Handler ───────────────────────────────────────────────────────────
+  const handleNext = useCallback(() => {
+    if (currentStatus !== 'completed') return;
 
-  const handlePause = () => {
-    setIsPlaying(false);
-    if (stageTimerRef.current) clearTimeout(stageTimerRef.current);
-  };
+    if (executionTimerRef.current) clearInterval(executionTimerRef.current);
 
-  const handleReset = () => {
-    handlePause();
-    setActiveIdx(0);
-    setCompletedIdxs(new Set());
-    setGuidedWaiting(false);
-    setElapsedMs(0);
-    setTerminalKey(k => k + 1);
-  };
+    if (currentStepIndex < STAGES.length - 1) {
+      const nextIdx = currentStepIndex + 1;
+      setCurrentStepIndex(nextIdx);
+    } else {
+      // Step 09 complete -> show final completion screen
+      setShowFinalSummary(true);
+    }
+  }, [currentStatus, currentStepIndex]);
 
-  const handleGuidedContinue = () => {
-    setGuidedWaiting(false);
-    setActiveIdx(i => i + 1);
-    setTerminalKey(k => k + 1);
-    setIsPlaying(true);
-  };
+  // ─── PREVIOUS Handler ───────────────────────────────────────────────────────
+  const handlePrevious = useCallback(() => {
+    if (currentStepIndex === 0 || currentStatus === 'running') return;
 
-  const handleManualStage = (i: number) => {
-    if (isPlaying) return;
-    setActiveIdx(i);
-    setTerminalKey(k => k + 1);
-    setGuidedWaiting(false);
-  };
+    if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+    setShowFinalSummary(false);
+    setCurrentStepIndex(prev => prev - 1);
+  }, [currentStepIndex, currentStatus]);
 
-  const elapsed = `${String(Math.floor(elapsedMs / 60000)).padStart(2, '0')}:${String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, '0')}`;
+  // ─── RESTART DEMO Handler ───────────────────────────────────────────────────
+  const handleRestart = useCallback(() => {
+    if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+    executionTimerRef.current = null;
+
+    setCurrentStepIndex(0);
+    setShowFinalSummary(false);
+    setStepStatuses({
+      0: 'pending',
+      1: 'pending',
+      2: 'pending',
+      3: 'pending',
+      4: 'pending',
+      5: 'pending',
+      6: 'pending',
+      7: 'pending',
+      8: 'pending',
+    });
+    setActionProgress({ 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 });
+    setDisplayedLogs({ 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] });
+  }, []);
+
+  // ─── MANUAL STAGE SELECTION ─────────────────────────────────────────────────
+  const handleSelectStage = useCallback((idx: number) => {
+    if (currentStatus === 'running') return;
+    if (executionTimerRef.current) clearInterval(executionTimerRef.current);
+    setShowFinalSummary(false);
+    setCurrentStepIndex(idx);
+  }, [currentStatus]);
 
   return (
-    <div className="min-h-screen bg-[#06080f] text-white font-sans">
+    <div className="min-h-screen bg-[#06080f] text-white font-sans flex flex-col selection:bg-cyan-500/20">
 
       {/* ══════ DEMO BANNER ══════ */}
-      <div className="sticky top-0 z-50 bg-[#0d0205] border-b border-[#f43f5e]/20">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-2 flex items-center justify-between gap-4 flex-wrap">
+      <header className="sticky top-0 z-50 bg-[#0a0507] border-b border-[#f43f5e]/25 backdrop-blur-md">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-2.5 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#f43f5e]/10 border border-[#f43f5e]/30">
-              <AlertTriangle className="w-3 h-3 text-[#f43f5e]" />
-              <span className="text-[10px] font-mono font-bold text-[#f43f5e] tracking-widest">DEMO MODE</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#f43f5e]/15 border border-[#f43f5e]/30">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#f43f5e]" />
+              <span className="text-[11px] font-mono font-bold text-[#f43f5e] tracking-widest">DEMO MODE</span>
             </div>
-            <span className="text-[10px] font-mono text-[#4a5568] hidden sm:inline">SIMULATED INVESTIGATION — NO REAL DATA</span>
+            <span className="text-[11px] font-mono text-[#94a3b8] font-medium hidden sm:inline">
+              SIMULATED INVESTIGATION — NO REAL DATA
+            </span>
+            <span className="text-[10px] font-mono text-[#4a5568] hidden md:inline">
+              Case: <span className="text-[#94a3b8] font-bold">TRACEX-DEMO-001</span> | Evidence: <span className="text-[#94a3b8] font-bold">demo-evidence-01.raw</span> (XFS)
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-mono text-[#64748b] border border-[#1c2536] hover:text-white hover:border-[#2d3748] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono text-[#94a3b8] border border-[#1c2536] hover:text-white hover:border-[#2d3748] transition-all"
             >
-              <X className="w-3 h-3" /> EXIT DEMO
+              <X className="w-3.5 h-3.5" /> EXIT DEMO
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold text-[#3b82f6] border border-[#3b82f6]/30 hover:bg-[#3b82f6]/10 transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)]"
             >
-              OPEN WORKSPACE <ArrowRight className="w-3 h-3" />
+              OPEN WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-5">
+      {/* ══════ MAIN VIEW CONTAINER ══════ */}
+      <main className="max-w-[1600px] w-full mx-auto px-4 md:px-8 py-6 space-y-6 flex-1">
 
-        {/* ══════ PAGE HEADER ══════ */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-[#3b82f6]" />
-            <span className="text-[10px] font-mono text-[#60a5fa] tracking-widest font-bold">TRACE X — FORENSIC INVESTIGATION DEMO</span>
-          </div>
-          <h1 className="text-xl md:text-2xl font-bold text-white font-mono">
-            Guided Workflow: Evidence → Report
-          </h1>
-          <p className="text-[12px] text-[#64748b] mt-1">
-            9 numbered stages. Follow each step to understand what TRACE X does, what it receives, and what it produces.
-          </p>
-        </div>
-
-        {/* ══════ PIPELINE BAR ══════ */}
-        <div className="p-3 rounded-xl bg-[#090c16] border border-[#1c2536]">
-          <div className="text-[9px] font-mono font-bold text-[#2d3748] tracking-widest mb-2">
-            TRACE X INVESTIGATION PIPELINE
-          </div>
-          <PipelineBar activeIdx={activeIdx} completedIdxs={completedIdxs} />
-        </div>
-
-        {/* ══════ CONTROL BAR ══════ */}
-        <div className="p-3 rounded-xl bg-[#090c16] border border-[#1c2536] flex flex-wrap items-center gap-3">
-          {/* Mode selector */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-[#050811] border border-[#1c2536]">
-            {(['auto', 'guided'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); handlePause(); }}
-                className={`px-3 py-1 rounded text-[10px] font-mono font-bold transition-all ${
-                  mode === m
-                    ? 'bg-[#1c2536] text-white'
-                    : 'text-[#4a5568] hover:text-[#94a3b8]'
-                }`}
-              >
-                {m === 'auto' ? 'AUTO DEMO' : 'GUIDED MODE'}
-              </button>
-            ))}
-          </div>
-
-          {/* Play / Pause */}
-          <button
-            onClick={isPlaying ? handlePause : handlePlay}
-            disabled={isAllComplete || guidedWaiting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[11px] font-mono font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-              isPlaying
-                ? 'text-[#fbbf24] border-[#fbbf24]/30 bg-[#fbbf24]/08 hover:bg-[#fbbf24]/15'
-                : 'text-[#3b82f6] border-[#3b82f6]/30 bg-[#3b82f6]/08 hover:bg-[#3b82f6]/15'
-            }`}
-          >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {isPlaying ? 'PAUSE' : guidedWaiting ? 'PAUSED' : isAllComplete ? 'COMPLETE' : '▶ PLAY'}
-          </button>
-
-          {/* Speed */}
-          <div className="flex items-center gap-1">
-            {[0.5, 1.0, 1.5, 2.0].map(s => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`px-2 py-1 rounded text-[10px] font-mono border transition-all ${
-                  speed === s
-                    ? 'text-[#22d3ee] border-[#22d3ee]/30 bg-[#22d3ee]/08'
-                    : 'text-[#4a5568] border-[#1c2536] hover:text-[#94a3b8]'
-                }`}
-              >
-                {s}x{s === 1.0 ? ' ★' : ''}
-              </button>
-            ))}
-          </div>
-
-          {/* Restart */}
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono text-[#4a5568] border border-[#1c2536] hover:text-[#94a3b8] hover:border-[#2d3748] transition-all"
-          >
-            <RotateCcw className="w-3 h-3" /> RESET
-          </button>
-
-          {/* Elapsed */}
-          <div className="ml-auto text-[10px] font-mono text-[#4a5568]">
-            Elapsed: <span className="text-[#22d3ee] font-bold">{elapsed}</span>
-            <span className="mx-2 text-[#1c2536]">|</span>
-            Stage {activeIdx + 1} / {STAGES.length}
-          </div>
-        </div>
-
-        {/* ══════ GUIDED MODE — STEP COMPLETE GATE ══════ */}
-        <AnimatePresence>
-          {guidedWaiting && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="p-5 rounded-xl bg-[#052019] border border-[#34d399]/30 flex items-center justify-between flex-wrap gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-[#34d399]" />
-                <div>
-                  <div className="text-[11px] font-mono font-bold text-[#34d399] tracking-widest">
-                    STEP {currentStage.num} COMPLETE
-                  </div>
-                  <div className="text-[12px] text-[#94a3b8] font-mono mt-0.5">{currentStage.label} — {currentStage.output}</div>
-                </div>
-              </div>
-              {activeIdx < STAGES.length - 1 && (
-                <button
-                  onClick={handleGuidedContinue}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-mono font-bold text-white border border-[#3b82f6]/40 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/20 transition-all"
-                >
-                  CONTINUE TO STEP {STAGES[activeIdx + 1].num} — {STAGES[activeIdx + 1].label}
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ══════ MAIN CONTENT AREA ══════ */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeIdx}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-5"
-          >
-            {/* Left: Step info + explainer */}
-            <div className="lg:col-span-4 space-y-4">
-              {/* Headline */}
-              <div
-                className="p-4 rounded-xl border"
-                style={{ borderColor: `${currentStage.color}20`, background: `${currentStage.color}05` }}
-              >
-                <div className="text-[9px] font-mono text-[#4a5568] tracking-widest mb-1">STAGE OBJECTIVE</div>
-                <p className="text-[13px] text-[#94a3b8] leading-relaxed font-mono italic">"{currentStage.headline}"</p>
-              </div>
-
-              {/* Info card */}
-              <StepInfoCard
-                stage={currentStage}
-                isActive={isPlaying && !guidedWaiting}
-                isComplete={completedIdxs.has(activeIdx)}
-                speed={speed}
-              />
-
-              {/* Explainer */}
-              <ExplainerPanel stage={currentStage} />
-
-              {/* Manual nav */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleManualStage(Math.max(0, activeIdx - 1))}
-                  disabled={activeIdx === 0 || isPlaying}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-mono border border-[#1c2536] text-[#4a5568] hover:text-[#94a3b8] hover:border-[#2d3748] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" /> PREV
-                </button>
-                <button
-                  onClick={() => handleManualStage(Math.min(STAGES.length - 1, activeIdx + 1))}
-                  disabled={activeIdx === STAGES.length - 1 || isPlaying}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-mono border border-[#1c2536] text-[#4a5568] hover:text-[#94a3b8] hover:border-[#2d3748] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
-                  NEXT <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+        {/* ══════ TITLE & INTRO ══════ */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#1c2536] pb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Shield className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-mono text-cyan-400 tracking-wider font-bold">
+                TRACE X GUIDED FORENSIC PIPELINE
+              </span>
             </div>
-
-            {/* Right: Terminal + stage selector */}
-            <div className="lg:col-span-8 space-y-4">
-              {/* Stage selector pills */}
-              <div className="flex flex-wrap gap-1.5">
-                {STAGES.map((s, i) => {
-                  const done = completedIdxs.has(i);
-                  const active = activeIdx === i;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => handleManualStage(i)}
-                      disabled={isPlaying}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all disabled:cursor-not-allowed ${
-                        active
-                          ? 'scale-[1.04]'
-                          : done
-                            ? 'text-[#34d399] border-[#1c3a28] bg-[#052019]'
-                            : 'text-[#4a5568] border-[#1c2536] hover:text-[#94a3b8]'
-                      }`}
-                      style={active ? { color: s.color, borderColor: `${s.color}35`, background: `${s.color}0A` } : undefined}
-                    >
-                      {done && !active ? <CheckCircle2 className="w-3 h-3 text-[#34d399]" /> : null}
-                      {s.num} {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Terminal */}
-              <StageTerminal key={terminalKey} lines={currentStage.log} speed={speed} />
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* ══════ COMPLETION ══════ */}
-        {isAllComplete && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="p-8 rounded-2xl border border-[#34d399]/25 bg-[#052019] relative overflow-hidden text-center"
-          >
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, #34d39908, transparent 70%)' }} />
-            <CheckCircle2 className="w-14 h-14 text-[#34d399] mx-auto mb-4" />
-            <h2 className="text-2xl font-bold font-mono text-white mb-1">09 / 09 — INVESTIGATION WORKFLOW COMPLETE</h2>
-            <p className="text-[13px] text-[#64748b] mb-6 max-w-xl mx-auto">
-              You have walked the complete TRACE X forensic pipeline from case creation to audit trail.
-              This was a simulated demonstration using synthetic data only.
+            <h1 className="text-2xl md:text-3xl font-bold text-white font-mono tracking-tight">
+              Deleted Data Recovery Demonstration
+            </h1>
+            <p className="text-xs text-[#94a3b8] mt-1 font-mono">
+              9 sequential forensic stages. Use manual controls: <span className="text-cyan-400 font-bold">RUN STEP</span> → explain → <span className="text-cyan-400 font-bold">NEXT</span>.
             </p>
+          </div>
 
-            {/* Completion checklist */}
-            <div className="grid grid-cols-3 md:grid-cols-9 gap-2 mb-8 max-w-3xl mx-auto">
-              {STAGES.map(s => (
-                <div key={s.id} className="flex flex-col items-center gap-1">
-                  <CheckCircle2 className="w-5 h-5 text-[#34d399]" />
-                  <span className="text-[9px] font-mono text-[#34d399] text-center leading-tight">{s.label}</span>
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <button
+              onClick={handleRestart}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono text-[#94a3b8] border border-[#1c2536] hover:text-white hover:border-[#2d3748] transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> RESTART DEMO
+            </button>
+          </div>
+        </div>
+
+        {/* ══════ 9-STEP PIPELINE TRACKER ══════ */}
+        <div className="p-3.5 rounded-2xl bg-[#090c16] border border-[#1c2536] shadow-lg">
+          <div className="text-[10px] font-mono font-bold text-[#64748b] tracking-widest mb-2.5 uppercase flex items-center justify-between">
+            <span>Investigation Pipeline (9 Stages)</span>
+            <span className="text-cyan-400">Step {currentStepIndex + 1} of 9</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-1.5">
+            {STAGES.map((s, idx) => {
+              const isCompleted = stepStatuses[idx] === 'completed';
+              const isActive = currentStepIndex === idx && !showFinalSummary;
+              const isPending = stepStatuses[idx] === 'pending';
+              const isRunning = stepStatuses[idx] === 'running';
+
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handleSelectStage(idx)}
+                  disabled={currentStatus === 'running'}
+                  className={`p-2 rounded-xl text-left border transition-all relative flex flex-col justify-between min-h-[58px] ${
+                    isActive
+                      ? 'bg-[#0f172a] border-cyan-400/60 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                      : isCompleted
+                        ? 'bg-[#061e16] border-emerald-500/40 hover:border-emerald-500/60'
+                        : 'bg-[#060810] border-[#162032] opacity-75 hover:opacity-100 hover:border-[#243550]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold" style={{ color: isActive ? '#22d3ee' : isCompleted ? '#34d399' : '#64748b' }}>
+                      {s.num}
+                    </span>
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : isRunning ? (
+                      <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                    ) : (
+                      <Circle className="w-3 h-3 text-[#2d3b55]" />
+                    )}
+                  </div>
+                  <div className={`text-[10px] font-mono font-semibold truncate mt-1 ${isActive ? 'text-white' : isCompleted ? 'text-emerald-200' : 'text-[#8b9bb4]'}`}>
+                    {s.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ══════ MAIN WORKSPACE AREA ══════ */}
+        {!showFinalSummary ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            {/* LEFT COLUMN: ACTIVE STEP DETAILS & EXPLANATION (7 Cols) */}
+            <div className="lg:col-span-7 space-y-5">
+
+              {/* STEP CARD */}
+              <div
+                className="rounded-2xl border overflow-hidden bg-gradient-to-b from-[#090d18] to-[#060810] transition-all"
+                style={{
+                  borderColor: currentStatus === 'running' ? `${activeStage.color}60` : currentStatus === 'completed' ? '#05966950' : '#1c2536',
+                  boxShadow: currentStatus === 'running' ? `0 0 25px ${activeStage.color}15` : 'none',
+                }}
+              >
+                {/* Step Header */}
+                <div className="p-5 border-b border-[#162137] flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${activeStage.color}15`, border: `1px solid ${activeStage.color}35` }}
+                    >
+                      <activeStage.icon className="w-6 h-6" style={{ color: activeStage.color }} />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-mono tracking-widest uppercase font-bold" style={{ color: activeStage.color }}>
+                        STAGE {activeStage.num} OF 09
+                      </div>
+                      <h2 className="text-lg font-bold text-white font-mono">{activeStage.label}</h2>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold border uppercase"
+                    style={{
+                      color: currentStatus === 'completed' ? '#34d399' : currentStatus === 'running' ? '#22d3ee' : currentStatus === 'paused' ? '#fbbf24' : '#64748b',
+                      borderColor: currentStatus === 'completed' ? '#05966950' : currentStatus === 'running' ? '#0891b250' : '#1c2536',
+                      background: currentStatus === 'completed' ? '#061e16' : currentStatus === 'running' ? '#082f49' : '#080d19',
+                    }}
+                  >
+                    {currentStatus === 'completed' ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : currentStatus === 'running' ? (
+                      <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                    ) : (
+                      <Circle className="w-3.5 h-3.5" />
+                    )}
+                    {currentStatus}
+                  </div>
                 </div>
-              ))}
+
+                {/* 4 SECTIONS (Task 4: WHAT WE TAKE, WHAT WE DO, WHAT WE PRODUCE, WHERE IT GOES NEXT) */}
+                <div className="p-5 space-y-4 font-mono text-xs">
+
+                  {/* 1. WHAT WE TAKE */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" /> WHAT WE TAKE
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#060812] border border-[#162137] text-slate-200">
+                      {activeStage.whatWeTake}
+                    </div>
+                  </div>
+
+                  {/* 2. WHAT WE DO */}
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400" /> WHAT WE DO
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#060812] border border-[#162137] space-y-2">
+                      {activeStage.whatWeDo.map((action, i) => {
+                        const isDone = currentStatus === 'completed' || i < currentActionCount;
+                        const isCurrent = currentStatus === 'running' && i === currentActionCount;
+
+                        return (
+                          <div
+                            key={i}
+                            className={`flex items-start gap-2.5 transition-colors duration-300 ${
+                              isDone ? 'text-slate-200' : isCurrent ? 'text-cyan-300 font-semibold' : 'text-[#475569]'
+                            }`}
+                          >
+                            <div className="mt-0.5 flex-shrink-0">
+                              {isDone ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : isCurrent ? (
+                                <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                              ) : (
+                                <Circle className="w-3.5 h-3.5 text-[#1e293b]" />
+                              )}
+                            </div>
+                            <span className="leading-relaxed">{action}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. WHAT WE PRODUCE */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> WHAT WE PRODUCE
+                    </div>
+                    <div
+                      className={`p-3 rounded-xl border transition-all ${
+                        currentStatus === 'completed'
+                          ? 'bg-[#061e16] border-emerald-500/40 text-emerald-200'
+                          : currentStatus === 'running'
+                            ? 'bg-[#081528] border-cyan-500/30 text-cyan-200'
+                            : 'bg-[#060812] border-[#162137] text-[#475569]'
+                      }`}
+                    >
+                      {currentStatus === 'completed' || currentStatus === 'running' ? (
+                        <div className="space-y-1.5">
+                          {activeStage.whatWeProduce.map((prod, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">•</span>
+                              <span className="text-slate-200">{prod}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="italic text-[#475569]">— awaiting execution —</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. WHERE IT GOES NEXT */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> WHERE IT GOES NEXT
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#060812] border border-[#162137] text-slate-300 flex items-center justify-between">
+                      <span className="font-semibold text-amber-300">{activeStage.whereItGoesNext}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CONTROLS TOOLBAR (Task 7 & 8: PREVIOUS, RUN STEP, PAUSE/RESUME, NEXT) */}
+                <div className="p-4 bg-[#070b16] border-t border-[#162137] flex items-center justify-between gap-3 flex-wrap">
+                  <button
+                    onClick={handlePrevious}
+                    disabled={currentStepIndex === 0 || currentStatus === 'running'}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold border border-[#1c2536] text-[#94a3b8] hover:text-white hover:border-[#2d3748] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> PREVIOUS
+                  </button>
+
+                  <div className="flex items-center gap-2.5">
+                    {/* RUN STEP BUTTON */}
+                    {currentStatus !== 'running' ? (
+                      <button
+                        onClick={handleRunStep}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-md ${
+                          currentStatus === 'completed'
+                            ? 'bg-[#0f241d] border border-emerald-500/40 text-emerald-300 hover:bg-[#15342a]'
+                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                        }`}
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        {currentStatus === 'completed' ? 'RE-RUN STEP' : `RUN STEP ${activeStage.num}`}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePause}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all"
+                      >
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                        PAUSE
+                      </button>
+                    )}
+
+                    {currentStatus === 'paused' && (
+                      <button
+                        onClick={handleResume}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold bg-cyan-600 text-white hover:bg-cyan-500 transition-all"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" /> RESUME
+                      </button>
+                    )}
+
+                    {/* NEXT BUTTON (Disabled until current step completes) */}
+                    <button
+                      onClick={handleNext}
+                      disabled={currentStatus !== 'completed'}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                        currentStatus === 'completed'
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse'
+                          : 'border border-[#1c2536] text-[#475569] opacity-40 cursor-not-allowed'
+                      }`}
+                    >
+                      {currentStepIndex === STAGES.length - 1 ? 'FINISH INVESTIGATION' : 'NEXT'}
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* EXPLANATION & LEGAL CONTEXT PANEL */}
+              <div className="p-4 rounded-xl bg-[#080d19] border border-[#162137] space-y-2.5 font-mono text-xs">
+                <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+                  FORENSIC CONTEXT & ADMISSIBILITY
+                </div>
+                <p className="text-slate-300 leading-relaxed">{activeStage.explanation}</p>
+                <div className="pt-2 border-t border-[#131d33]">
+                  <span className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase block mb-1">
+                    WHY THIS STEP EXISTS:
+                  </span>
+                  <p className="text-[#94a3b8] leading-relaxed">{activeStage.why}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center justify-center gap-4 flex-wrap">
+            {/* RIGHT COLUMN: TERMINAL LOGS & FORENSIC CONSOLE (5 Cols) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="rounded-2xl bg-[#050811] border border-[#1c2536] overflow-hidden flex flex-col h-full min-h-[500px] shadow-2xl">
+                {/* Terminal Header */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#090c16] border-b border-[#1c2536]">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                    </div>
+                    <span className="text-xs font-mono text-cyan-400 font-bold ml-1">forensic-core</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                    SIMULATED OUTPUT
+                  </span>
+                </div>
+
+                {/* Command banner */}
+                <div className="px-4 py-2 bg-[#060a14] border-b border-[#141d2e] font-mono text-[11px] text-cyan-300/80 truncate">
+                  $ {activeStage.command}
+                </div>
+
+                {/* Terminal Lines (Task 5: Sequential logs, no permanent awaiting completion) */}
+                <div className="p-4 font-mono text-xs leading-relaxed flex-1 overflow-y-auto space-y-1.5 min-h-[360px] max-h-[520px]">
+                  {currentLogs.length === 0 ? (
+                    <div className="text-[#475569] italic pt-4">
+                      {currentStatus === 'pending'
+                        ? '[READY] Click "RUN STEP ' + activeStage.num + '" to execute this stage...'
+                        : 'Starting execution...'}
+                    </div>
+                  ) : (
+                    currentLogs.map((line, idx) => {
+                      const isCompleteLine = line.includes('COMPLETE') || line.includes('[OK]');
+                      const isVerified = line.includes('VERIFIED') || line.includes('PASSED');
+                      const isDiscovered = line.includes('[DISCOVERED]') || line.includes('[VALIDATED]');
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`${
+                            isCompleteLine
+                              ? 'text-emerald-400 font-bold'
+                              : isVerified
+                                ? 'text-teal-300 font-semibold'
+                                : isDiscovered
+                                  ? 'text-amber-300 font-semibold'
+                                  : line.startsWith('[')
+                                    ? 'text-slate-300'
+                                    : 'text-[#94a3b8]'
+                          }`}
+                        >
+                          {line}
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {currentStatus === 'running' && (
+                    <div className="text-cyan-400 animate-pulse text-sm">▋</div>
+                  )}
+
+                  <div ref={terminalEndRef} />
+                </div>
+
+                {/* Terminal Footer */}
+                <div className="px-4 py-2 bg-[#090c16] border-t border-[#1c2536] flex items-center justify-between text-[10px] font-mono text-[#64748b]">
+                  <span>Status: <span className="text-slate-300 uppercase">{currentStatus}</span></span>
+                  <span>Logs: {currentLogs.length} / {activeStage.logLines.length}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          /* ══════ TASK 9: FINAL INVESTIGATION COMPLETE SCREEN ══════ */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="rounded-3xl border border-emerald-500/30 bg-gradient-to-b from-[#061e16] to-[#04100c] p-8 md:p-12 text-center max-w-4xl mx-auto shadow-2xl space-y-8"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+
+            <div>
+              <div className="text-xs font-mono font-bold text-emerald-400 tracking-widest uppercase mb-1">
+                ALL 9 STAGES VERIFIED
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold font-mono text-white tracking-tight">
+                INVESTIGATION COMPLETE
+              </h2>
+              <p className="text-xs font-mono text-[#94a3b8] mt-2 max-w-lg mx-auto">
+                The simulated digital forensics recovery pipeline has executed completely and cleanly from case intake to final sealed audit trail.
+              </p>
+            </div>
+
+            {/* Structured Evidence Manifest (Task 9) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-left font-mono">
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Case ID</div>
+                <div className="text-sm font-bold text-white mt-0.5">TRACEX-DEMO-001</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Evidence</div>
+                <div className="text-sm font-bold text-white mt-0.5">demo-evidence-01.raw</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Artifacts Found</div>
+                <div className="text-sm font-bold text-cyan-400 mt-0.5">3</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Artifacts Recovered</div>
+                <div className="text-sm font-bold text-emerald-400 mt-0.5">3 (100%)</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Validation</div>
+                <div className="text-sm font-bold text-emerald-400 mt-0.5">PASSED</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20">
+                <div className="text-[10px] text-[#64748b] uppercase">Chain of Custody</div>
+                <div className="text-sm font-bold text-emerald-400 mt-0.5">COMPLETE</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#081512] border border-emerald-500/20 col-span-2 sm:col-span-1 md:col-span-2">
+                <div className="text-[10px] text-[#64748b] uppercase">Audit Trail</div>
+                <div className="text-sm font-bold text-emerald-400 mt-0.5">COMPLETE (9 Sealed Entries)</div>
+              </div>
+            </div>
+
+            {/* Navigation Actions (Task 9 & 10) */}
+            <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
               <button
-                onClick={handleReset}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#1c2536] text-[#94a3b8] text-sm font-mono hover:border-[#2d3748] hover:text-white transition-all"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs transition-all shadow-[0_0_25px_rgba(6,182,212,0.3)]"
+              >
+                <Terminal className="w-4 h-4" /> VIEW DASHBOARD
+              </button>
+
+              <button
+                onClick={() => navigate('/reports')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0a1826] border border-cyan-500/30 hover:bg-[#102438] text-cyan-300 font-mono font-bold text-xs transition-all"
+              >
+                <ScrollText className="w-4 h-4" /> VIEW REPORT
+              </button>
+
+              <button
+                onClick={handleRestart}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl border border-[#1c2536] text-[#94a3b8] hover:text-white hover:border-[#2d3748] font-mono text-xs transition-all"
               >
                 <RotateCcw className="w-4 h-4" /> RESTART DEMO
               </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold font-mono text-white transition-all"
-                style={{ background: 'linear-gradient(135deg, #3b82f6, #22d3ee)', boxShadow: '0 0 24px #3b82f615' }}
-              >
-                <Terminal className="w-4 h-4" /> OPEN REAL WORKSPACE <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 text-[10px] font-mono text-[#f43f5e]/50">
-              TRACE X DEMONSTRATION REPORT — SIMULATED DATA — No real forensic data was processed.
             </div>
           </motion.div>
         )}
 
-        {/* ══════ DISCLAIMER ══════ */}
-        <div className="pt-4 border-t border-[#1c2536]/60 text-center">
-          <p className="text-[10px] font-mono text-[#2d3748] max-w-lg mx-auto">
-            All case numbers, file names, hashes, inodes, and recovery results shown here are
-            synthetically generated for demonstration. This data does not represent any real investigation
-            and must never be treated as evidence.
-          </p>
-        </div>
-      </div>
+      </main>
+
+      {/* ══════ FOOTER ══════ */}
+      <footer className="border-t border-[#162137] py-4 bg-[#050811] text-center">
+        <p className="text-[11px] font-mono text-[#475569] max-w-xl mx-auto px-4">
+          TRACE X DEMONSTRATION WORKFLOW — All cases, hashes, and recovery parameters are synthetically generated for presentation and do not alter real system evidence.
+        </p>
+      </footer>
+
     </div>
   );
 }
