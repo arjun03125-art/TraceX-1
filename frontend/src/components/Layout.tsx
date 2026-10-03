@@ -258,17 +258,17 @@ export default function Layout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#060a14]">
         {/* Top Global Command Bar */}
-        <header className="h-14 flex-shrink-0 bg-[#080d1a]/90 backdrop-blur-md border-b border-[#151f33] px-6 flex items-center justify-between z-10">
+        <header className="h-14 flex-shrink-0 bg-[#080d1a]/90 backdrop-blur-md border-b border-[#151f33] px-4 sm:px-6 flex items-center justify-between gap-3 z-10 min-w-0">
           {/* Active Case Selector / Breadcrumbs */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-shrink">
             {activeCase ? (
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e1629] border border-[#1d2a45]">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">CASE:</span>
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e1629] border border-[#1d2a45] min-w-0 max-w-[200px] sm:max-w-[260px] md:max-w-[320px] lg:max-w-[380px]">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex-shrink-0">CASE:</span>
                 <select
                   value={selectedCaseId}
                   onChange={e => setSelectedCaseId(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-semibold text-cyan-300 focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs font-mono font-semibold text-cyan-300 focus:outline-none cursor-pointer truncate min-w-0 w-full"
                 >
                   {cases.map(c => (
                     <option key={c.case_id} value={c.case_id} className="bg-[#0e1629] text-slate-200">
@@ -278,13 +278,13 @@ export default function Layout() {
                 </select>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e1629] border border-[#1d2a45]">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e1629] border border-[#1d2a45] flex-shrink-0">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">NO ACTIVE CASE</span>
               </div>
             )}
 
-            <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-slate-500">
+            <div className="hidden xl:flex items-center gap-2 text-xs font-mono text-slate-500 flex-shrink-0">
               <span className="text-slate-700">/</span>
               <span className="text-slate-400 capitalize">
                 {location.pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
@@ -295,41 +295,41 @@ export default function Layout() {
           {/* Center Search Input Trigger */}
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
-            className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-[#0a101f] border border-[#1a253c] hover:border-cyan-500/40 text-slate-400 hover:text-slate-200 transition-all text-xs font-mono w-72 justify-between group shadow-inner"
+            className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-[#0a101f] border border-[#1a253c] hover:border-cyan-500/40 text-slate-400 hover:text-slate-200 transition-all text-xs font-mono w-48 xl:w-64 justify-between group shadow-inner flex-shrink min-w-0"
           >
             <span className="flex items-center gap-2 truncate">
-              <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="truncate text-slate-400">Search evidence, inodes, cases...</span>
+              <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <span className="truncate text-slate-400">Search evidence...</span>
             </span>
-            <kbd className="px-1.5 py-0.5 rounded bg-[#131d33] border border-[#213052] text-[9px] text-cyan-400/80">
+            <kbd className="px-1.5 py-0.5 rounded bg-[#131d33] border border-[#213052] text-[9px] text-cyan-400/80 flex-shrink-0">
               Ctrl+K
             </kbd>
           </button>
 
           {/* Right Status Indicators */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Real-time UTC investigation clock */}
-            <div className="px-2.5 py-1 rounded bg-[#0a101f] border border-[#1b2742] text-[11px] font-mono text-slate-400 flex items-center gap-1.5 shadow-inner">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="px-2.5 py-1 rounded bg-[#0a101f] border border-[#1b2742] text-[11px] font-mono text-slate-400 flex items-center gap-1.5 shadow-inner whitespace-nowrap flex-shrink-0">
+              <Clock className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
               <span className="tabular-nums font-mono text-slate-300">{utcTime || 'UTC'}</span>
             </div>
 
             {/* Current Role badge */}
             <div
-              className="px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs font-mono flex items-center gap-1.5 shadow-inner"
+              className="px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs font-mono flex items-center gap-1.5 shadow-inner whitespace-nowrap flex-shrink-0"
               title={`Logged in as ${currentUser.name} (${currentRole})`}
             >
-              <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden md:inline">Role: {currentRole}</span>
+              <KeyRound className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+              <span>Role: {currentRole}</span>
             </div>
 
             {/* Administrator Portal jump */}
             <button
               onClick={() => navigate('/admin')}
               title="Open Administrator Portal (Authentication required)"
-              className="px-3 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 hover:border-cyan-400/60 text-cyan-200 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.12)]"
+              className="px-2.5 sm:px-3 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 hover:border-cyan-400/60 text-cyan-200 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.12)] whitespace-nowrap flex-shrink-0"
             >
-              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <Shield className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
               <span>Admin Portal</span>
             </button>
           </div>

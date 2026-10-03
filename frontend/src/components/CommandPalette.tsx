@@ -30,160 +30,112 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   const navigate = useNavigate();
 
   const commands: CommandItem[] = [
-    // Navigation
+    // Core Forensic Navigation
     {
       id: 'nav-dashboard',
-      title: 'Investigation Command Center',
+      title: 'Command Center',
       category: 'Navigation',
-      description: 'Main case overview, telemetry, and critical indicators',
+      description: 'Main investigation overview, telemetry, and critical indicators',
       icon: LayoutDashboard,
       action: () => { navigate('/dashboard'); onClose(); }
     },
     {
       id: 'nav-cases',
-      title: 'Case Directory',
+      title: 'Cases',
       category: 'Navigation',
-      description: 'Switch cases, manage warrants, and investigator logs',
+      description: 'Case dossier directory, custody tracking, and examiner attribution',
       icon: FolderOpen,
-      badge: '2 Active',
+      badge: 'Active',
       action: () => { navigate('/cases'); onClose(); }
     },
     {
       id: 'nav-evidence',
-      title: 'Evidence Raw Images',
+      title: 'Evidence',
       category: 'Navigation',
-      description: 'Mounted XFS and Btrfs bitstream images',
+      description: 'Mounted XFS & Btrfs raw forensic images with SHA-256 attestation',
       icon: HardDrive,
-      badge: '48 GiB',
+      badge: '32 GB E01',
       action: () => { navigate('/evidence'); onClose(); }
     },
     {
       id: 'nav-deleted',
-      title: 'Deleted Inode Catalog',
+      title: 'Deleted Files',
       category: 'Navigation',
-      description: 'Unlinked file candidates with extent fragments',
+      description: 'Unlinked inode catalog, extent fragments & cluster slack space',
       icon: FileX2,
-      badge: '5 Found',
-      action: () => { navigate('/deleted'); onClose(); }
+      badge: 'Inodes',
+      action: () => { navigate('/deleted-files'); onClose(); }
     },
     {
       id: 'nav-recovered',
-      title: 'Recovered Artifacts',
+      title: 'Recovered Files',
       category: 'Navigation',
-      description: 'Validated files with hash verification digests',
+      description: 'Extracted file artifacts with SHA-256 validation digests',
       icon: FileCheck2,
-      badge: '3 Validated',
-      action: () => { navigate('/recovered'); onClose(); }
+      badge: 'Validated',
+      action: () => { navigate('/recovered-files'); onClose(); }
     },
     {
-      id: 'nav-timeline',
-      title: 'Forensic Chronology & Timeline',
+      id: 'nav-chronology',
+      title: 'Chronology',
       category: 'Navigation',
-      description: 'Correlated inode mtime, ctime, and unlinking sequence',
+      description: 'Correlated MACB timeline and deletion chronological sequence',
       icon: Clock,
-      action: () => { navigate('/timeline'); onClose(); }
+      action: () => { navigate('/chronology'); onClose(); }
     },
     {
       id: 'nav-reports',
-      title: 'Court-Ready Forensic Reports',
+      title: 'Reports',
       category: 'Navigation',
-      description: 'Cryptographic attestation and chain-of-custody export',
+      description: 'Court-admissible forensic examination dossiers and attestations',
       icon: FileText,
       action: () => { navigate('/reports'); onClose(); }
     },
     {
       id: 'nav-audit',
-      title: 'Cryptographic Audit Log',
+      title: 'Audit Log',
       category: 'Navigation',
-      description: 'Tamper-evident append-only journal of all operations',
+      description: 'Tamper-evident append-only journal of all operations & hashes',
       icon: ScrollText,
-      badge: 'Immutable',
+      badge: 'Signed',
       action: () => { navigate('/audit'); onClose(); }
     },
     {
-      id: 'nav-settings',
-      title: 'Hardware & Kernel Settings',
+      id: 'nav-admin',
+      title: 'Admin Portal',
       category: 'Navigation',
-      description: 'Write-block controls, hash engines, worker thread pool',
-      icon: Settings,
-      action: () => { navigate('/settings'); onClose(); }
+      description: 'Administrator authentication, engine settings, and system health',
+      icon: Shield,
+      badge: 'Protected',
+      action: () => { navigate('/admin'); onClose(); }
     },
 
     // Forensic Actions
     {
-      id: 'act-verify-hashes',
-      title: 'Run Cryptographic Hash Verification',
+      id: 'act-create-report',
+      title: 'Create Forensic Report',
       category: 'Forensic Action',
-      description: 'Validate SHA-256 and BLAKE3 digests across all raw evidence images',
+      description: 'Compile case information, recovered artifacts, and SHA-256 validation',
+      icon: FileText,
+      badge: 'Report Engine',
+      action: () => { navigate('/reports'); onClose(); }
+    },
+    {
+      id: 'act-verify-evidence',
+      title: 'Verify Cryptographic Hashes',
+      category: 'Forensic Action',
+      description: 'Validate SHA-256 bitstream digests against chain-of-custody manifest',
       icon: CheckCircle2,
-      badge: 'SHA-256 / BLAKE3',
-      action: () => {
-        alert('Cryptographic Hash Verification initiated: All evidence blocks intact (SHA-256 & BLAKE3 matches recorded in audit log).');
-        onClose();
-      }
+      badge: 'SHA-256',
+      action: () => { navigate('/evidence'); onClose(); }
     },
     {
-      id: 'act-carve-blocks',
-      title: 'Deep Unallocated Extent Carving',
+      id: 'act-search-inodes',
+      title: 'Search Inode Records',
       category: 'Forensic Action',
-      description: 'Scan free blocks for PDF, DOCX, and SQL file headers',
-      icon: Sparkles,
-      badge: 'XFS & Btrfs',
-      action: () => {
-        navigate('/deleted');
-        onClose();
-      }
-    },
-    {
-      id: 'act-btrfs-gen',
-      title: 'Btrfs Generation Walk Scan',
-      category: 'Forensic Action',
-      description: 'Traverse chunk trees across historical transaction generations 470–482',
-      icon: Database,
-      action: () => {
-        navigate('/evidence');
-        onClose();
-      }
-    },
-    {
-      id: 'act-audit-export',
-      title: 'Export Chain of Custody Bundle',
-      category: 'Forensic Action',
-      description: 'Download JSON-LD signed audit report with kernel timestamps',
-      icon: Terminal,
-      action: () => {
-        navigate('/reports');
-        onClose();
-      }
-    },
-
-    // Evidence Artifacts
-    {
-      id: 'art-q3-audit',
-      title: 'confidential_q3_financial_audit.pdf',
-      category: 'Evidence Artifact',
-      description: '4.89 MB • Inode 134217728 • Confirmed Recovered',
-      icon: FileCheck2,
-      badge: 'High Confidence',
-      action: () => { navigate('/recovered'); onClose(); }
-    },
-    {
-      id: 'art-db-dump',
-      title: 'database_dump_users_salt.sql',
-      category: 'Evidence Artifact',
-      description: '28.4 MB • Btrfs Subvol 256 • Confirmed Recovered',
-      icon: FileCheck2,
-      badge: 'High Confidence',
-      action: () => { navigate('/recovered'); onClose(); }
-    },
-    {
-      id: 'art-bash-hist',
-      title: 'tampered_bash_history.txt',
-      category: 'Evidence Artifact',
-      description: '14.2 KB • Inode 134219500 • Partially Overwritten',
-      icon: FileX2,
-      badge: 'Medium Confidence',
-      action: () => { navigate('/deleted'); onClose(); }
+      description: 'Query deleted inode allocation table by filename, path, or object ID',
+      icon: Search,
+      action: () => { navigate('/deleted-files'); onClose(); }
     }
   ];
 

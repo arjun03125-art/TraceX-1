@@ -136,6 +136,26 @@ export interface Report {
   updated_at: string;
   created_by: string | null;
   notes: string | null;
+  evidence_id?: string;
+  evidence_source?: string;
+  filesystem?: string;
+  hash_sha256?: string;
+  total_artifacts?: number;
+  recovered_artifacts?: number;
+  partial_artifacts?: number;
+  validation_result?: string;
+  recovered_files?: Array<{
+    name: string;
+    type: string;
+    path: string;
+    size: string;
+    status: string;
+    recovery: string;
+    inode: string;
+    mtime: string;
+    sha256: string;
+    metadata: string;
+  }>;
 }
 
 // ─── Audit ──────────────────────────────────────────────────────────────────
@@ -151,11 +171,22 @@ export type AuditAction =
   | 'EVIDENCE_ADDED'
   | 'EVIDENCE_UPDATED'
   | 'EVIDENCE_DELETED'
+  | 'EVIDENCE_HASHED'
+  | 'EVIDENCE_VERIFIED'
+  | 'FILESYSTEM_IDENTIFIED'
+  | 'FILESYSTEM_ANALYZED'
+  | 'METADATA_EXTRACTED'
+  | 'DELETED_ARTIFACT_DISCOVERED'
+  | 'RECOVERY_STARTED'
+  | 'RECOVERY_COMPLETED'
+  | 'RECOVERY_VALIDATED'
+  | 'REPORT_GENERATED'
   | 'REPORT_CREATED'
   | 'REPORT_UPDATED'
   | 'REPORT_DELETED'
   | 'SETTINGS_UPDATED'
-  | 'DASHBOARD_LAYOUT_UPDATED';
+  | 'DASHBOARD_LAYOUT_UPDATED'
+  | string;
 
 export interface AuditEvent {
   id: number;
@@ -166,6 +197,10 @@ export interface AuditEvent {
   case_id: string | null;
   evidence_id: string | null;
   artifact_id: string | null;
+  target?: string | null;
+  status?: string | null;
+  description?: string | null;
+  hash_reference?: string | null;
   tool_version: string | null;
   details: string | null;
 }
@@ -381,14 +416,15 @@ export interface Artifact {
   recovered_size: number;
   missing_bytes: number;
   fragment_count: number;
-  sha256: string;
-  blake3: string;
+  sha256: string | null;
+  blake3: string | null;
   mtime: string | null;
   ctime: string | null;
   atime: string | null;
   crtime: string | null;
+  deleted_at?: string | null;
   metadata_source: MetadataSource;
-  output_path: string;
+  output_path: string | null;
   discovered_at: string;
   validated_at: string | null;
   validation_status: ValidationStatus;

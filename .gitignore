@@ -15,6 +15,15 @@ frontend/.env.local
 frontend/.env.production.local
 
 # ──────────────────────────────────────────
+# Python
+# ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# ──────────────────────────────────────────
 # Environment & Secrets — NEVER COMMIT
 # ──────────────────────────────────────────
 .env

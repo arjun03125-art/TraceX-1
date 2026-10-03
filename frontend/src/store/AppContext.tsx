@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import DataService from './DataService';
 import type {
-  Case, Evidence, Investigator, Report, AuditEvent,
+  Case, Evidence, Investigator, Report, AuditEvent, Artifact,
   AppSettings, DashboardLayout,
   CreateCaseRequest, UpdateCaseRequest,
   CreateInvestigatorRequest, UpdateInvestigatorRequest,
@@ -22,6 +22,7 @@ interface AppState {
   cases: Case[];
   investigators: Investigator[];
   evidence: Evidence[];
+  artifacts: Artifact[];
   reports: Report[];
   auditEvents: AuditEvent[];
   settings: AppSettings;
@@ -46,10 +47,16 @@ interface AppActions {
   updateEvidence(id: string, req: UpdateEvidenceRequest): Evidence | null;
   deleteEvidence(id: string): boolean;
 
+  // Artifacts
+  createArtifact(artifact: Artifact): Artifact;
+
   // Reports
-  createReport(req: CreateReportRequest): Report;
+  createReport(req: CreateReportRequest & Partial<Report>): Report;
   updateReport(id: string, req: UpdateReportRequest): Report | null;
   deleteReport(id: string): boolean;
+
+  // Audit
+  logEvent(action: string, description: string, opts?: any): AuditEvent;
 
   // Settings
   updateSettings(settings: AppSettings): AppSettings;
@@ -84,6 +91,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       cases: DataService.getCases(),
       investigators: DataService.getInvestigators(),
       evidence: DataService.getEvidence(),
+      artifacts: DataService.getArtifacts(),
       reports: DataService.getReports(),
       auditEvents: DataService.getAuditEvents(),
       settings: DataService.getSettings(),
@@ -144,6 +152,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refresh();
       return result;
     },
+    createArtifact(artifact) {
+      const result = DataService.createArtifact(artifact);
+      refresh();
+      return result;
+    },
     createReport(req) {
       const result = DataService.createReport(req);
       refresh();
@@ -156,6 +169,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     deleteReport(id) {
       const result = DataService.deleteReport(id);
+      refresh();
+      return result;
+    },
+    logEvent(action, description, opts) {
+      const result = DataService.logEvent(action, description, opts);
       refresh();
       return result;
     },

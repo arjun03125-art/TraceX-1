@@ -18,7 +18,8 @@ import {
   INITIAL_EVIDENCE,
   INITIAL_ARTIFACTS,
   INITIAL_AUDIT,
-  INITIAL_INVESTIGATORS
+  INITIAL_INVESTIGATORS,
+  INITIAL_REPORTS
 } from './forensicStore';
 
 // ─── Storage Keys ───────────────────────────────────────────────────────────
@@ -130,17 +131,30 @@ function getNextAuditId(): number {
 function logAuditEvent(
   action: AuditAction,
   details: Record<string, unknown>,
-  refs?: { case_id?: string; evidence_id?: string; artifact_id?: string }
+  refs?: {
+    case_id?: string;
+    evidence_id?: string;
+    artifact_id?: string;
+    actor?: string;
+    target?: string;
+    status?: string;
+    description?: string;
+    hash_reference?: string;
+  }
 ): AuditEvent {
   const event: AuditEvent = {
     id: getNextAuditId(),
     event_id: generateId('aud'),
     event_time: nowISO(),
-    actor: 'User',
+    actor: refs?.actor || 'Det. H. Vance',
     action,
     case_id: refs?.case_id || null,
     evidence_id: refs?.evidence_id || null,
     artifact_id: refs?.artifact_id || null,
+    target: refs?.target || null,
+    status: refs?.status || 'SUCCESS',
+    description: refs?.description || null,
+    hash_reference: refs?.hash_reference || null,
     tool_version: 'trace-x 0.1.0',
     details: JSON.stringify(details),
   };
@@ -346,14 +360,11 @@ export const DataService = {
       setAll(KEYS.evidence, INITIAL_EVIDENCE);
       return INITIAL_EVIDENCE;
     }
-    const hasRet = stored.some(e => e.evidence_id === 'ev-ret-001');
-    const hasPart = stored.some(e => e.evidence_id === 'ev-part-002');
-    if (!hasRet || !hasPart) {
-      const merged = [...stored];
-      if (!hasRet) merged.unshift(INITIAL_EVIDENCE[0]);
-      if (!hasPart) merged.splice(1, 0, INITIAL_EVIDENCE[1]);
-      setAll(KEYS.evidence, merged);
-      return merged;
+    const hasXfsDemo = stored.some(e => e.name === 'DEMO_FORENSIC_IMAGE_XFS.E01');
+    const hasBtrfsDemo = stored.some(e => e.name === 'DEMO_FORENSIC_IMAGE_BTRFS.E01');
+    if (!hasXfsDemo || !hasBtrfsDemo) {
+      setAll(KEYS.evidence, INITIAL_EVIDENCE);
+      return INITIAL_EVIDENCE;
     }
     return stored;
   },
@@ -444,7 +455,18 @@ export const DataService = {
   // ─── Reports ──────────────────────────────────────────────────────────
 
   getReports(): Report[] {
-    return getAll<Report>(KEYS.reports);
+    const stored = getAll<Report>(KEYS.reports);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.reports, INITIAL_REPORTS);
+      return INITIAL_REPORTS;
+    }
+    const hasInitial = stored.some(r => r.report_id === 'rep-ret-001');
+    if (!hasInitial) {
+      const merged = [...INITIAL_REPORTS, ...stored];
+      setAll(KEYS.reports, merged);
+      return merged;
+    }
+    return stored;
   },
 
   getReport(id: string): Report | undefined {
@@ -455,33 +477,50 @@ export const DataService = {
     return this.getReports().filter(r => r.case_id === caseId);
   },
 
-  createReport(req: CreateReportRequest): Report {
+  createReport(req: CreateReportRequest & Partial<Report>): Report {
     const now = nowISO();
     const report: Report = {
-      report_id: generateId('rpt'),
+      report_id: req.report_id || generateId('rpt'),
       case_id: req.case_id,
       title: req.title,
       description: req.description || null,
       summary: req.summary || null,
       report_type: req.report_type || 'COMPREHENSIVE',
-      author: req.author || 'Lead Examiner',
-      classification: req.classification || 'LAW_ENFORCEMENT_SENSITIVE',
+      author: req.author || 'Det. H. Vance (Lead Forensic Analyst)',
+      classification: req.classification || 'CONFIDENTIAL / COURT-ADMISSIBLE',
       format: req.format || 'HTML',
-      status: 'DRAFT',
+      status: req.status || 'FINAL',
       created_at: now,
       updated_at: now,
-      created_by: null,
+      created_by: req.created_by || 'Det. H. Vance',
       notes: req.notes || null,
+      evidence_id: req.evidence_id || 'ev-ret-001',
+      evidence_source: req.evidence_source || 'DEMO_FORENSIC_IMAGE_XFS.E01',
+      filesystem: req.filesystem || 'XFS',
+      hash_sha256: req.hash_sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      total_artifacts: req.total_artifacts ?? 3,
+      recovered_artifacts: req.recovered_artifacts ?? 3,
+      partial_artifacts: req.partial_artifacts ?? 0,
+      validation_result: req.validation_result || 'INTEGRITY VERIFIED — 100% MATCH',
+      recovered_files: req.recovered_files || [],
     };
 
     const list = this.getReports();
-    list.push(report);
+    list.unshift(report);
     setAll(KEYS.reports, list);
 
-    logAuditEvent('REPORT_CREATED', {
+    logAuditEvent('REPORT_GENERATED', {
       title: report.title,
-      format: report.format,
-    }, { case_id: req.case_id });
+      evidence_source: report.evidence_source,
+      validation_result: report.validation_result,
+    }, {
+      case_id: req.case_id,
+      evidence_id: report.evidence_id,
+      target: report.title,
+      status: 'FINAL',
+      description: `Report generated: ${report.title} (${report.evidence_source})`,
+      hash_reference: report.hash_sha256 || undefined,
+    });
 
     return report;
   },
@@ -532,11 +571,43 @@ export const DataService = {
       setAll(KEYS.audit, INITIAL_AUDIT);
       return INITIAL_AUDIT;
     }
+    const hasInitialWorkflow = stored.some(e => e.action === 'REPORT_GENERATED');
+    if (!hasInitialWorkflow) {
+      const merged = [...INITIAL_AUDIT, ...stored.filter(s => !INITIAL_AUDIT.some(ia => ia.event_id === s.event_id))];
+      setAll(KEYS.audit, merged);
+      return merged;
+    }
     return stored;
   },
 
   getAuditEventsByCase(caseId: string): AuditEvent[] {
     return this.getAuditEvents().filter(e => e.case_id === caseId);
+  },
+
+  logEvent(
+    action: AuditAction,
+    description: string,
+    opts?: {
+      case_id?: string;
+      evidence_id?: string;
+      artifact_id?: string;
+      actor?: string;
+      target?: string;
+      status?: string;
+      hash_reference?: string;
+      details?: Record<string, unknown>;
+    }
+  ): AuditEvent {
+    return logAuditEvent(action, opts?.details || { description }, {
+      case_id: opts?.case_id,
+      evidence_id: opts?.evidence_id,
+      artifact_id: opts?.artifact_id,
+      actor: opts?.actor,
+      target: opts?.target,
+      status: opts?.status,
+      description,
+      hash_reference: opts?.hash_reference,
+    });
   },
 
   // ─── Artifacts (Recovered Files) ─────────────────────────────────────────
@@ -547,12 +618,10 @@ export const DataService = {
       setAll(KEYS.artifacts, INITIAL_ARTIFACTS);
       return INITIAL_ARTIFACTS;
     }
-    const hasRet = stored.some(a => a.artifact_id === 'art-ret-101');
-    const hasPart = stored.some(a => a.artifact_id === 'art-part-201');
-    if (!hasRet || !hasPart) {
-      const merged = [...stored, ...INITIAL_ARTIFACTS.filter(ia => !stored.some(s => s.artifact_id === ia.artifact_id))];
-      setAll(KEYS.artifacts, merged);
-      return merged;
+    const hasServerLog = stored.some(a => a.filename === 'server.log');
+    if (!hasServerLog) {
+      setAll(KEYS.artifacts, INITIAL_ARTIFACTS);
+      return INITIAL_ARTIFACTS;
     }
     return stored;
   },
@@ -566,11 +635,18 @@ export const DataService = {
     list.unshift(artifact);
     setAll(KEYS.artifacts, list);
 
-    logAuditEvent('ARTIFACT_RECOVERED' as any, {
+    logAuditEvent('RECOVERY_COMPLETED', {
       filename: artifact.filename,
       size_bytes: artifact.size_bytes,
       recovery_method: artifact.recovery_method,
       sha256: artifact.sha256,
+    }, {
+      evidence_id: artifact.evidence_id,
+      artifact_id: artifact.artifact_id,
+      target: artifact.filename,
+      status: artifact.validation_status === 'VALID' ? 'SUCCESS' : 'PARTIAL',
+      description: `Artifact recovered: ${artifact.filename} (${artifact.file_type})`,
+      hash_reference: artifact.sha256 || undefined,
     });
 
     return artifact;

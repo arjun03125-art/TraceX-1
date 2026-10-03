@@ -89,21 +89,21 @@ export default function AdminLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#060a14]">
         {/* Top Global Admin Command Bar */}
-        <header className="h-14 flex-shrink-0 bg-[#080d1a]/90 backdrop-blur-md border-b border-[#151f33] px-6 flex items-center justify-between z-10">
+        <header className="h-14 flex-shrink-0 bg-[#080d1a]/90 backdrop-blur-md border-b border-[#151f33] px-4 sm:px-6 flex items-center justify-between gap-3 z-10 min-w-0">
           {/* Breadcrumbs & Case Scope */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-950/60 border border-cyan-800/40 text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider">
-              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="flex items-center gap-2.5 min-w-0 flex-shrink">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-950/60 border border-cyan-800/40 text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex-shrink-0">
+              <Shield className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
               <span>ADMINISTRATOR</span>
             </div>
 
-            <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-slate-500">
+            <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-slate-500 flex-shrink-0">
               <span className="text-slate-700">/</span>
               <span className="text-cyan-300 font-semibold">{getSubpageTitle()}</span>
             </div>
 
             {activeCase && (
-              <div className="hidden xl:flex items-center gap-2 px-2 py-0.5 rounded bg-[#0e1629] border border-[#1d2a45] text-[11px] font-mono text-slate-400">
+              <div className="hidden xl:flex items-center gap-2 px-2 py-0.5 rounded bg-[#0e1629] border border-[#1d2a45] text-[11px] font-mono text-slate-400 flex-shrink-0">
                 <span className="text-slate-500">Scope:</span>
                 <span className="text-cyan-300 font-semibold">{activeCase.case_number}</span>
               </div>
@@ -113,29 +113,29 @@ export default function AdminLayout() {
           {/* Center Search Input Trigger */}
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
-            className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-[#0a101f] border border-[#1a253c] hover:border-cyan-500/40 text-slate-400 hover:text-slate-200 transition-all text-xs font-mono w-72 justify-between group shadow-inner"
+            className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-[#0a101f] border border-[#1a253c] hover:border-cyan-500/40 text-slate-400 hover:text-slate-200 transition-all text-xs font-mono w-48 xl:w-64 justify-between group shadow-inner flex-shrink min-w-0"
           >
             <span className="flex items-center gap-2 truncate">
-              <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="truncate text-slate-400">Search cases, configs, logs...</span>
+              <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <span className="truncate text-slate-400">Search cases...</span>
             </span>
-            <kbd className="px-1.5 py-0.5 rounded bg-[#131d33] border border-[#213052] text-[9px] text-cyan-400/80">
+            <kbd className="px-1.5 py-0.5 rounded bg-[#131d33] border border-[#213052] text-[9px] text-cyan-400/80 flex-shrink-0">
               Ctrl+K
             </kbd>
           </button>
 
           {/* Right Status & Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* UTC Clock */}
-            <div className="px-2.5 py-1 rounded bg-[#0a101f] border border-[#1b2742] text-[11px] font-mono text-slate-400 flex items-center gap-1.5 shadow-inner">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="px-2.5 py-1 rounded bg-[#0a101f] border border-[#1b2742] text-[11px] font-mono text-slate-400 flex items-center gap-1.5 shadow-inner whitespace-nowrap flex-shrink-0">
+              <Clock className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
               <span className="tabular-nums font-mono text-slate-300">{utcTime || 'UTC'}</span>
             </div>
 
             {/* Quick Actions */}
             <button
               onClick={() => navigate('/admin/cases')}
-              className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-xs font-mono transition-all flex items-center gap-1.5"
+              className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-xs font-mono transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
             >
               <Plus className="w-3 h-3" />
               <span className="hidden md:inline">Case</span>
@@ -145,7 +145,7 @@ export default function AdminLayout() {
             <button
               onClick={handleLogout}
               title="Logout from Administrator Session"
-              className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-950/70 border border-rose-700/40 text-rose-300 hover:text-rose-200 text-xs font-mono flex items-center gap-1.5 transition-all"
+              className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-950/70 border border-rose-700/40 text-rose-300 hover:text-rose-200 text-xs font-mono flex items-center gap-1.5 transition-all whitespace-nowrap flex-shrink-0"
             >
               <LogOut className="w-3 h-3" />
               <span className="hidden md:inline">Logout</span>

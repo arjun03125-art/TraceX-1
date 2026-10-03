@@ -42,6 +42,9 @@ async def get_db() -> AsyncSession:
 
 async def init_db() -> None:
     """Initialize database tables."""
+    from pathlib import Path
+    Path("./data").mkdir(parents=True, exist_ok=True)
+    Path("./evidence").mkdir(parents=True, exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
