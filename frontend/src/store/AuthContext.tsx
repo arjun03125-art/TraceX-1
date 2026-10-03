@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { UserRole, AuthUser } from '../types/forensic';
+import DataService from './DataService';
 
 export const DEFAULT_USERS: Record<UserRole, AuthUser> = {
   INVESTIGATOR: {
@@ -67,7 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useMemo(() => DEFAULT_USERS[currentRole], [currentRole]);
 
   const adminLogin = useCallback((username: string, password: string) => {
-    if (username.trim() === 'admin' && password === 'admin123') {
+    const u = username.trim().toLowerCase();
+    const p = password.trim();
+    if (
+      (u === 'admin@tracex.local' || u === 'admin') &&
+      (p === 'TraceX@123' || p === 'admin123')
+    ) {
       setIsAdminAuthenticated(true);
       setCurrentRole('ADMINISTRATOR');
       try {
@@ -76,9 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // ignore
       }
+      try {
+        DataService.logEvent('ADMIN_LOGIN', 'Administrator authenticated successfully via demo portal', {
+          actor: 'admin@tracex.local',
+          target: 'Administrator Portal (/admin)',
+          status: 'SUCCESS',
+          details: { role: 'ADMINISTRATOR', method: 'DEMO_AUTHENTICATION' },
+        });
+      } catch {
+        // ignore
+      }
       return { success: true };
     }
-    return { success: false, error: 'Invalid username or password. Access denied.' };
+    return { success: false, error: 'Invalid credentials. Use admin@tracex.local / TraceX@123' };
   }, []);
 
   const adminLogout = useCallback(() => {
@@ -87,6 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       sessionStorage.removeItem('tracex_admin_authenticated');
       localStorage.setItem('tracex_auth_role', 'INVESTIGATOR');
+    } catch {
+      // ignore
+    }
+    try {
+      DataService.logEvent('ADMIN_LOGOUT', 'Administrator logged out of session', {
+        actor: 'admin@tracex.local',
+        target: 'Administrator Portal (/admin)',
+        status: 'SUCCESS',
+      });
     } catch {
       // ignore
     }

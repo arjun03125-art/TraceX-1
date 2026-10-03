@@ -15,8 +15,27 @@ export default function AuditLogPage() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
 
+  const ADMIN_ACTIONS = new Set([
+    'ADMIN_LOGIN',
+    'ADMIN_LOGOUT',
+    'SETTINGS_UPDATED',
+    'INVESTIGATOR_CREATED',
+    'INVESTIGATOR_UPDATED',
+    'INVESTIGATOR_DELETED',
+    'SECURITY_POLICY_CHANGED',
+    'ENGINE_CONFIG_CHANGED',
+    'ADMIN_ACTION_PERFORMED',
+    'DASHBOARD_LAYOUT_UPDATED',
+  ]);
+
+  const isAdministrativeEvent = (action: string) =>
+    ADMIN_ACTIONS.has(action) || action.startsWith('ADMIN_') || action.includes('SETTINGS') || action.includes('POLICY') || action.includes('ENGINE');
+
   const filtered = useMemo(() => {
     return auditEvents.filter((e) => {
+      // Investigators only view forensic investigation audit trail
+      if (isAdministrativeEvent(e.action)) return false;
+
       const matchSearch =
         e.action.toLowerCase().includes(search.toLowerCase()) ||
         (e.actor && e.actor.toLowerCase().includes(search.toLowerCase())) ||

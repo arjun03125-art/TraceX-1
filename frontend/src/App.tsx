@@ -16,6 +16,7 @@ import RecoveredFilesPage from './pages/RecoveredFilesPage';
 import TimelinePage from './pages/TimelinePage';
 import ReportsPage from './pages/ReportsPage';
 import AuditLogPage from './pages/AuditLogPage';
+import AnalysisPage from './pages/AnalysisPage';
 import SettingsPage from './pages/SettingsPage';
 
 // Administrator Portal Pages
@@ -56,11 +57,12 @@ export default function App() {
         <Route path="/deleted" element={<Navigate to="/deleted-files" replace />} />
         <Route path="/recovered-files" element={<RecoveredFilesPage />} />
         <Route path="/recovered" element={<Navigate to="/recovered-files" replace />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/chronology" element={<TimelinePage />} />
         <Route path="/timeline" element={<Navigate to="/chronology" replace />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/audit" element={<AuditLogPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
       </Route>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -75,7 +77,8 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AdminOverviewPage />} />
+        <Route index element={<Navigate to="/admin/overview" replace />} />
+        <Route path="overview" element={<AdminOverviewPage />} />
         <Route path="cases" element={<AdminCasesPage />} />
         <Route path="cases/:caseId" element={<CaseDetailPage />} />
         <Route path="investigators" element={<AdminInvestigatorsPage />} />

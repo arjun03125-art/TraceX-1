@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Shield, Lock, ArrowLeft, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Shield, Lock, ArrowLeft, AlertCircle, KeyRound, CheckCircle2, Sparkles, Copy, Check } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 
 export default function AdminLoginPage() {
@@ -8,15 +8,16 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { adminLogin, isAdminAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If already authenticated, redirect to /admin
+  // If already authenticated, redirect to /admin/overview
   React.useEffect(() => {
     if (isAdminAuthenticated) {
-      navigate('/admin', { replace: true });
+      navigate('/admin/overview', { replace: true });
     }
   }, [isAdminAuthenticated, navigate]);
 
@@ -29,12 +30,18 @@ export default function AdminLoginPage() {
       const result = adminLogin(username, password);
       setLoading(false);
       if (result.success) {
-        const destination = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/admin';
+        const destination = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/admin/overview';
         navigate(destination, { replace: true });
       } else {
         setError(result.error || 'Authentication failed. Please verify credentials.');
       }
-    }, 400);
+    }, 300);
+  };
+
+  const handleFillDemo = () => {
+    setUsername('admin@tracex.local');
+    setPassword('TraceX@123');
+    setError(null);
   };
 
   return (
@@ -65,9 +72,40 @@ export default function AdminLoginPage() {
               ADMINISTRATOR ACCESS
             </h1>
             <p className="text-xs text-slate-400 font-mono mt-0.5">
-              Enter authorized administrator credentials to continue.
+              Enter authorized administrator credentials to manage engine, users &amp; security policies.
             </p>
           </div>
+        </div>
+
+        {/* Demo Authentication Banner Required */}
+        <div className="p-3.5 rounded-xl bg-[#0b1326] border border-cyan-500/30 font-mono text-xs space-y-2 shadow-inner">
+          <div className="flex items-center justify-between text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              DEMO AUTHENTICATION
+            </span>
+            <span className="px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/40 text-[9px]">
+              ROLE: ADMIN
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-300 space-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Username:</span>
+              <span className="text-cyan-300 font-bold">admin@tracex.local</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Password:</span>
+              <span className="text-cyan-300 font-bold">TraceX@123</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleFillDemo}
+            className="w-full mt-1 py-1 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-semibold transition-colors flex items-center justify-center gap-1.5"
+          >
+            <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+            <span>Auto-Fill Demo Credentials</span>
+          </button>
         </div>
 
         {/* Error Alert */}
@@ -90,7 +128,7 @@ export default function AdminLoginPage() {
               autoFocus
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="Administrator username"
+              placeholder="admin@tracex.local"
               className="w-full px-3.5 py-2.5 bg-[#050811] border border-[#152138] rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 transition-all"
             />
           </div>
@@ -119,7 +157,7 @@ export default function AdminLoginPage() {
             ) : (
               <>
                 <KeyRound className="w-4 h-4" />
-                <span>SIGN IN</span>
+                <span>SIGN IN TO ADMIN PORTAL</span>
               </>
             )}
           </button>
@@ -128,7 +166,7 @@ export default function AdminLoginPage() {
         {/* Footer Policy Note */}
         <div className="pt-2 border-t border-[#131d33] text-center space-y-3 font-mono text-[11px]">
           <p className="text-slate-500 text-[10px]">
-            Authentication required for system administration.
+            Authentication required. Normal investigators must remain in Investigator Workspace.
           </p>
 
           <div>
@@ -137,7 +175,7 @@ export default function AdminLoginPage() {
               className="inline-flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Investigator Workspace</span>
+              <span>← Return to Investigator Workspace</span>
             </Link>
           </div>
         </div>

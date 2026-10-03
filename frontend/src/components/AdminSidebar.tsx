@@ -24,15 +24,15 @@ export default function AdminSidebar({ onOpenCommandPalette }: AdminSidebarProps
   };
 
   const ADMIN_NAV = [
-    { path: '/admin', label: 'Overview', icon: LayoutDashboard },
-    { path: '/admin/cases', label: 'Cases', icon: FolderOpen, count: cases.length },
+    { path: '/admin/overview', label: 'System Overview', icon: LayoutDashboard },
+    { path: '/admin/cases', label: 'Case Administration', icon: FolderOpen, count: cases.length },
     { path: '/admin/investigators', label: 'Investigators', icon: Users, count: investigators.length },
-    { path: '/admin/evidence', label: 'Evidence', icon: HardDrive, count: evidence.length },
-    { path: '/admin/reports', label: 'Reports', icon: FileText, count: reports.length },
-    { path: '/admin/audit', label: 'Audit', icon: ScrollText, count: auditEvents.length },
-    { path: '/admin/engine', label: 'Engine', icon: Cpu },
-    { path: '/admin/security', label: 'Security', icon: ShieldCheck },
+    { path: '/admin/evidence', label: 'Evidence Administration', icon: HardDrive, count: evidence.length },
+    { path: '/admin/audit', label: 'Audit Administration', icon: ScrollText, count: auditEvents.length },
+    { path: '/admin/engine', label: 'Forensic Engine', icon: Cpu },
     { path: '/admin/settings', label: 'System Settings', icon: Settings },
+    { path: '/admin/security', label: 'Security Policies', icon: ShieldCheck },
+    { path: '/admin/reports', label: 'Report Oversight', icon: FileText, count: reports.length },
   ];
 
   return (
@@ -150,17 +150,17 @@ export default function AdminSidebar({ onOpenCommandPalette }: AdminSidebarProps
         </nav>
       </div>
 
-      {/* Return to Investigator Workspace */}
+      {/* Return to Investigator Workspace (Requirement 5) */}
       <div className="px-3 pt-2 pb-1 border-t border-[#151f33]">
         <button
-          onClick={() => navigate('/dashboard')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono text-slate-400 hover:text-cyan-300 hover:bg-[#0d1424] border border-transparent hover:border-cyan-500/20 transition-all group"
+          onClick={() => navigate('/cases')}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono text-slate-300 hover:text-cyan-300 hover:bg-[#0d1424] border border-cyan-500/20 hover:border-cyan-500/40 transition-all group shadow-sm"
         >
           <span className="flex items-center gap-2 truncate">
             <ArrowLeft className="w-3.5 h-3.5 text-cyan-400 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="truncate">Investigator Workspace</span>
+            <span className="truncate font-semibold">← Return to Investigator Workspace</span>
           </span>
-          <span className="text-[9px] text-slate-600">/dashboard</span>
+          <span className="text-[9px] text-slate-500">/cases</span>
         </button>
       </div>
 

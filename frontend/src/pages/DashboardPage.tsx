@@ -26,15 +26,15 @@ import {
 // ─── Pipeline stages (mirrors DemoPage for consistency) ──────────────────────
 
 const PIPELINE_STAGES = [
-  { num: '01', label: 'CASE',     short: 'Case',     icon: ClipboardList, route: '/admin/cases',      color: '#3b82f6' },
-  { num: '02', label: 'EVIDENCE', short: 'Evidence', icon: HardDrive,     route: '/admin/evidence',   color: '#22d3ee' },
-  { num: '03', label: 'VERIFY',   short: 'Verify',   icon: Hash,          route: '/admin/evidence',   color: '#a78bfa' },
-  { num: '04', label: 'ANALYZE',  short: 'Analyze',  icon: ScanLine,      route: '/evidence',         color: '#fbbf24' },
-  { num: '05', label: 'DISCOVER', short: 'Discover', icon: FileX2,        route: '/deleted',          color: '#f43f5e' },
-  { num: '06', label: 'RECOVER',  short: 'Recover',  icon: FileCheck2,    route: '/recovered',        color: '#34d399' },
-  { num: '07', label: 'VALIDATE', short: 'Validate', icon: ShieldCheck,   route: '/recovered',        color: '#10b981' },
-  { num: '08', label: 'REPORT',   short: 'Report',   icon: FileText,      route: '/admin/reports',    color: '#f97316' },
-  { num: '09', label: 'AUDIT',    short: 'Audit',    icon: ScrollText,    route: '/admin/audit',      color: '#8b5cf6' },
+  { num: '01', label: 'CASE',     short: 'Case',     icon: ClipboardList, route: '/cases',           color: '#3b82f6' },
+  { num: '02', label: 'EVIDENCE', short: 'Evidence', icon: HardDrive,     route: '/evidence',        color: '#22d3ee' },
+  { num: '03', label: 'VERIFY',   short: 'Verify',   icon: Hash,          route: '/evidence',        color: '#a78bfa' },
+  { num: '04', label: 'ANALYZE',  short: 'Analyze',  icon: ScanLine,      route: '/analysis',        color: '#fbbf24' },
+  { num: '05', label: 'DISCOVER', short: 'Discover', icon: FileX2,        route: '/deleted-files',   color: '#f43f5e' },
+  { num: '06', label: 'RECOVER',  short: 'Recover',  icon: FileCheck2,    route: '/recovered-files', color: '#34d399' },
+  { num: '07', label: 'VALIDATE', short: 'Validate', icon: ShieldCheck,   route: '/recovered-files', color: '#10b981' },
+  { num: '08', label: 'REPORT',   short: 'Report',   icon: FileText,      route: '/reports',         color: '#f97316' },
+  { num: '09', label: 'AUDIT',    short: 'Audit',    icon: ScrollText,    route: '/audit',           color: '#8b5cf6' },
 ] as const;
 
 // ─── Determine pipeline progress from real data ───────────────────────────────
@@ -320,7 +320,7 @@ export default function DashboardPage() {
             </p>
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <button
-                onClick={() => navigate('/admin/cases')}
+                onClick={() => navigate('/cases')}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
               >
                 <Plus className="w-4 h-4" /> STEP 01 — CREATE CASE
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 Case Dossier <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
               </button>
               <button
-                onClick={() => navigate('/admin/evidence')}
+                onClick={() => navigate('/evidence')}
                 className="px-3 py-2 rounded-xl bg-[#0f182c] hover:bg-[#16233f] border border-[#1e2f52] text-slate-200 text-xs font-mono transition-colors flex items-center gap-2"
               >
                 <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
@@ -411,10 +411,10 @@ export default function DashboardPage() {
         {/* KPI summary — 1 col */}
         <div className="grid grid-cols-2 gap-2 content-start">
           {[
-            { label: 'CASES', value: stats.totalCases, icon: FolderOpen, color: '#3b82f6', route: '/admin/cases' },
-            { label: 'EVIDENCE', value: stats.totalEvidence, icon: HardDrive, color: '#22d3ee', route: '/admin/evidence' },
-            { label: 'REPORTS', value: stats.totalReports, icon: FileText, color: '#f97316', route: '/admin/reports' },
-            { label: 'AUDIT', value: stats.totalAuditEvents, icon: ScrollText, color: '#8b5cf6', route: '/admin/audit' },
+            { label: 'CASES', value: stats.totalCases, icon: FolderOpen, color: '#3b82f6', route: '/cases' },
+            { label: 'EVIDENCE', value: stats.totalEvidence, icon: HardDrive, color: '#22d3ee', route: '/evidence' },
+            { label: 'REPORTS', value: stats.totalReports, icon: FileText, color: '#f97316', route: '/reports' },
+            { label: 'AUDIT', value: stats.totalAuditEvents, icon: ScrollText, color: '#8b5cf6', route: '/audit' },
           ].map(kpi => (
             <button
               key={kpi.label}
@@ -451,7 +451,7 @@ export default function DashboardPage() {
               <FolderOpen className="w-3.5 h-3.5 text-[#3b82f6]" />
               <span className="text-[12px] font-bold text-slate-200 font-mono">Investigations</span>
             </div>
-            <button onClick={() => navigate('/admin/cases')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+            <button onClick={() => navigate('/cases')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
               All <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -460,7 +460,7 @@ export default function DashboardPage() {
               <FolderOpen className="w-7 h-7 text-slate-600 mx-auto" />
               <p>No investigations yet.</p>
               <button
-                onClick={() => navigate('/admin/cases')}
+                onClick={() => navigate('/cases')}
                 className="px-3 py-1.5 rounded-lg bg-[#111a2f] hover:bg-[#16233f] text-cyan-300 text-[10px] border border-cyan-500/30 inline-flex items-center gap-1.5"
               >
                 <Plus className="w-3 h-3" /> CREATE CASE
@@ -489,7 +489,7 @@ export default function DashboardPage() {
               <HardDrive className="w-3.5 h-3.5 text-[#22d3ee]" />
               <span className="text-[12px] font-bold text-slate-200 font-mono">Evidence Sources</span>
             </div>
-            <button onClick={() => navigate('/admin/evidence')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+            <button onClick={() => navigate('/evidence')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
               All <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -498,7 +498,7 @@ export default function DashboardPage() {
               <HardDrive className="w-7 h-7 text-slate-600 mx-auto" />
               <p>No evidence attached.</p>
               <button
-                onClick={() => navigate('/admin/evidence')}
+                onClick={() => navigate('/evidence')}
                 className="px-3 py-1.5 rounded-lg bg-[#111a2f] hover:bg-[#16233f] text-cyan-300 text-[10px] border border-cyan-500/30 inline-flex items-center gap-1.5"
               >
                 <Plus className="w-3 h-3" /> ADD EVIDENCE
@@ -534,7 +534,7 @@ export default function DashboardPage() {
               <ScrollText className="w-3.5 h-3.5 text-[#8b5cf6]" />
               <span className="text-[12px] font-bold text-slate-200 font-mono">Audit Trail</span>
             </div>
-            <button onClick={() => navigate('/admin/audit')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+            <button onClick={() => navigate('/audit')} className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
               View All <ArrowRight className="w-3 h-3" />
             </button>
           </div>

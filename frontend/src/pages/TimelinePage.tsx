@@ -1157,7 +1157,7 @@ export default function TimelinePage() {
                         <div className="pt-2 flex items-center gap-3">
                           {stage.id === '02' || stage.id === '03' || stage.id === '04' ? (
                             <button
-                              onClick={() => navigate('/admin/evidence')}
+                              onClick={() => navigate('/evidence')}
                               className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
                             >
                               <span>View Evidence Details</span>

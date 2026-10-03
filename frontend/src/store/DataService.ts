@@ -572,7 +572,8 @@ export const DataService = {
       return INITIAL_AUDIT;
     }
     const hasInitialWorkflow = stored.some(e => e.action === 'REPORT_GENERATED');
-    if (!hasInitialWorkflow) {
+    const hasAdminEvents = stored.some(e => e.action === 'ADMIN_LOGIN');
+    if (!hasInitialWorkflow || !hasAdminEvents) {
       const merged = [...INITIAL_AUDIT, ...stored.filter(s => !INITIAL_AUDIT.some(ia => ia.event_id === s.event_id))];
       setAll(KEYS.audit, merged);
       return merged;

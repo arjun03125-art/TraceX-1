@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, HardDrive, FileX2,
-  FileCheck2, Clock, FileText, ScrollText,
+  FileCheck2, Clock, FileText, ScrollText, ScanLine, ArrowRight,
   Shield, Terminal, ArrowLeft, Search,
   Lock, Plus, KeyRound, ShieldAlert, ShieldCheck
 } from 'lucide-react';
@@ -15,7 +15,7 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { cases, evidence, reports } = useApp();
-  const { currentUser, currentRole, isAdmin, switchRole } = useAuth();
+  const { currentUser, currentRole, isAdmin, isAdminAuthenticated, switchRole } = useAuth();
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [utcTime, setUtcTime] = useState('');
@@ -64,9 +64,10 @@ export default function Layout() {
     { path: '/evidence', label: 'Evidence', icon: HardDrive, count: evidence.length },
     { path: '/deleted-files', label: 'Deleted Files', icon: FileX2 },
     { path: '/recovered-files', label: 'Recovered Files', icon: FileCheck2 },
+    { path: '/analysis', label: 'Analysis', icon: ScanLine },
     { path: '/chronology', label: 'Chronology', icon: Clock },
     { path: '/reports', label: 'Reports', icon: FileText, count: reports.length },
-    { path: '/audit', label: 'Audit Log', icon: ScrollText },
+    { path: '/audit', label: 'Audit Trail', icon: ScrollText },
   ];
 
   return (
@@ -189,26 +190,31 @@ export default function Layout() {
           </nav>
         </div>
 
-        {/* Administrator Portal Switcher (Visible if user is Admin) */}
-        {isAdmin && (
-          <div className="mx-3 mb-2 p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-cyan-300 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                Administrator Active
-              </span>
-              <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-cyan-900/60 text-cyan-200">
-                ACTIVE
-              </span>
-            </div>
-            <button
-              onClick={() => navigate('/admin')}
-              className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_10px_rgba(6,182,212,0.25)]"
-            >
-              Open Admin Portal →
-            </button>
+        {/* Administrator Portal Button — Always accessible for authentication (Requirement 5) */}
+        <div className="mx-3 mb-2 p-2.5 rounded-xl bg-[#091122] border border-[#1b2b4d] hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold text-slate-300 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              Administrator
+            </span>
+            <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800/40">
+              PORTAL
+            </span>
           </div>
-        )}
+          <button
+            onClick={() => {
+              if (isAdminAuthenticated) {
+                navigate('/admin/overview');
+              } else {
+                navigate('/admin/login', { state: { from: { pathname: '/admin/overview' } } });
+              }
+            }}
+            className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-cyan-600/90 to-blue-600/90 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+          >
+            <span>Admin Portal</span>
+            <span className="text-cyan-200">→</span>
+          </button>
+        </div>
 
         {/* Return to Cinematic Landing */}
         <div className="px-3 pb-2 pt-1 border-t border-[#151f33]">
@@ -325,12 +331,18 @@ export default function Layout() {
 
             {/* Administrator Portal jump */}
             <button
-              onClick={() => navigate('/admin')}
+              onClick={() => {
+                if (isAdminAuthenticated) {
+                  navigate('/admin/overview');
+                } else {
+                  navigate('/admin/login', { state: { from: { pathname: '/admin/overview' } } });
+                }
+              }}
               title="Open Administrator Portal (Authentication required)"
               className="px-2.5 sm:px-3 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 hover:border-cyan-400/60 text-cyan-200 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.12)] whitespace-nowrap flex-shrink-0"
             >
               <Shield className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-              <span>Admin Portal</span>
+              <span>Admin Portal →</span>
             </button>
           </div>
         </header>

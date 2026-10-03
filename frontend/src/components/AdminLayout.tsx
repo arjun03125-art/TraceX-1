@@ -62,15 +62,15 @@ export default function AdminLayout() {
 
   const getSubpageTitle = () => {
     const path = location.pathname;
-    if (path === '/admin') return 'Overview';
-    if (path === '/admin/cases') return 'Cases';
+    if (path === '/admin' || path === '/admin/overview') return 'System Overview';
+    if (path === '/admin/cases') return 'Case Administration';
     if (path.startsWith('/admin/cases/')) return 'Case Dossier & Evidence';
     if (path === '/admin/investigators') return 'Investigators';
-    if (path === '/admin/evidence') return 'Evidence';
-    if (path === '/admin/reports') return 'Reports';
-    if (path === '/admin/audit') return 'Audit';
-    if (path === '/admin/engine') return 'Engine';
-    if (path === '/admin/security') return 'Security';
+    if (path === '/admin/evidence') return 'Evidence Administration';
+    if (path === '/admin/reports') return 'Report Oversight';
+    if (path === '/admin/audit') return 'Audit Administration';
+    if (path === '/admin/engine') return 'Forensic Engine';
+    if (path === '/admin/security') return 'Security Policies';
     if (path === '/admin/settings') return 'System Settings';
     return 'Administrator';
   };
