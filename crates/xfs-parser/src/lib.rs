@@ -64,7 +64,7 @@ pub enum XfsInodeFmt {
 }
 
 impl XfsInodeFmt {
-    fn from_u8(v: u8) -> Option<Self> {
+    pub fn from_u8(v: u8) -> Option<Self> {
         match v {
             0 => Some(Self::Dev),
             1 => Some(Self::Local),
@@ -73,6 +73,54 @@ impl XfsInodeFmt {
             4 => Some(Self::Uuid),
             _ => None,
         }
+    }
+}
+
+/// Parsed XFS extent record (B+tree / direct extents format).
+/// An extent descriptor is 128 bits (16 bytes) on disk:
+/// - bit 127: state (0 = normal, 1 = unwritten)
+/// - bits 126..73: logical block offset in file (54 bits)
+/// - bits 72..21: physical block address / fsblock (52 bits)
+/// - bits 20..0: block count (21 bits)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct XfsBmbtRec {
+    pub state: u8,
+    pub startoff: u64,
+    pub startblock: u64,
+    pub blockcount: u64,
+}
+
+impl XfsBmbtRec {
+    /// Unpack an extent record from a 16-byte raw descriptor (big-endian).
+    pub fn unpack(bytes: &[u8; 16]) -> Self {
+        let hi = u64::from_be_bytes(bytes[0..8].try_into().unwrap());
+        let lo = u64::from_be_bytes(bytes[8..16].try_into().unwrap());
+        let state = ((hi >> 63) & 1) as u8;
+        let startoff = (hi >> 9) & ((1u64 << 54) - 1);
+        let startblock = ((hi & 0x1ff) << 43) | (lo >> 21);
+        let blockcount = lo & ((1u64 << 21) - 1);
+        Self { state, startoff, startblock, blockcount }
+    }
+
+    /// Convert logical startblock to absolute byte offset in evidence image.
+    ///
+    /// Uses saturating arithmetic to prevent panic on corrupt/fuzz inputs.
+    pub fn byte_offset(&self, agblklog: u8, agblocks: u32, block_size: u32) -> u64 {
+        let physical_block = if agblklog > 0 {
+            let ag_number = self.startblock >> agblklog;
+            let ag_block = self.startblock & ((1u64 << agblklog) - 1);
+            ag_number.saturating_mul(agblocks as u64).saturating_add(ag_block)
+        } else {
+            self.startblock
+        };
+        physical_block.saturating_mul(block_size as u64)
+    }
+
+    /// Convert blockcount to byte length.
+    ///
+    /// Uses saturating arithmetic to prevent panic on corrupt/fuzz inputs.
+    pub fn byte_len(&self, block_size: u32) -> u64 {
+        self.blockcount.saturating_mul(block_size as u64)
     }
 }
 
@@ -505,6 +553,141 @@ impl XfsInodeCore {
 
         meta
     }
+
+    /// Parse extents from the data fork buffer (the byte slice starting at inode offset 0).
+    pub fn parse_extents(&self, inode_buf: &[u8]) -> Vec<XfsBmbtRec> {
+        let fork_offset = if self.version >= 3 { 176 } else { 100 };
+        if self.format != XfsInodeFmt::Extents as u8 || self.nextents <= 0 || fork_offset >= inode_buf.len() {
+            return Vec::new();
+        }
+        let data_fork = &inode_buf[fork_offset..];
+        let mut extents = Vec::with_capacity(self.nextents as usize);
+        for i in 0..self.nextents as usize {
+            let start = i * 16;
+            let end = start + 16;
+            if end <= data_fork.len() {
+                let rec_bytes: &[u8; 16] = data_fork[start..end].try_into().unwrap();
+                extents.push(XfsBmbtRec::unpack(rec_bytes));
+            } else {
+                break;
+            }
+        }
+        extents
+    }
+
+    /// Read inline data if the inode format is Local.
+    pub fn read_inline_data<'a>(&self, inode_buf: &'a [u8]) -> Option<&'a [u8]> {
+        if self.format != XfsInodeFmt::Local as u8 {
+            return None;
+        }
+        let fork_offset = if self.version >= 3 { 176 } else { 100 };
+        if fork_offset >= inode_buf.len() {
+            return None;
+        }
+        let available = &inode_buf[fork_offset..];
+        let len = (self.size as usize).min(available.len());
+        Some(&available[..len])
+    }
+
+    /// Build a RecoveryCandidate with extent or inline fragments for this inode.
+    pub fn to_recovery_candidate(
+        &self,
+        evidence_id: Uuid,
+        inode_no: u64,
+        inode_buf: &[u8],
+        inode_offset: u64,
+        agblklog: u8,
+        agblocks: u32,
+        block_size: u32,
+    ) -> RecoveryCandidate {
+        use metadata::{ConfidenceLevel, ConfidenceSignals, RecoveryFragment};
+
+        let mut signals = ConfidenceSignals::new();
+        signals.metadata_validity = Some(true);
+        signals.reasons.push("✓ XFS inode metadata parsed successfully".into());
+
+        let mut fragments = Vec::new();
+        let logical_size = if self.size >= 0 { Some(self.size as u64) } else { None };
+        let mut recovered_size = 0u64;
+
+        if self.format == XfsInodeFmt::Local as u8 {
+            let fork_offset = if self.version >= 3 { 176 } else { 100 };
+            let inline_len = if self.size >= 0 {
+                (self.size as u64).min((inode_buf.len().saturating_sub(fork_offset)) as u64)
+            } else {
+                0
+            };
+            if inline_len > 0 {
+                fragments.push(RecoveryFragment {
+                    fragment_index: 0,
+                    source_offset: inode_offset + fork_offset as u64,
+                    length: inline_len,
+                    logical_offset: 0,
+                    confidence: ConfidenceLevel::High,
+                });
+                recovered_size = inline_len;
+                signals.extent_validity = Some(true);
+                signals.reasons.push("✓ Local inline data present in inode fork".into());
+            }
+        } else if self.format == XfsInodeFmt::Extents as u8 {
+            let extents = self.parse_extents(inode_buf);
+            if !extents.is_empty() {
+                signals.extent_validity = Some(true);
+                signals.reasons.push(format!("✓ Parsed {} XFS extents", extents.len()));
+                for (idx, ext) in extents.iter().enumerate() {
+                    let frag_offset = ext.byte_offset(agblklog, agblocks, block_size);
+                    let frag_len = ext.byte_len(block_size);
+                    let log_offset = ext.startoff * (block_size as u64);
+                    fragments.push(RecoveryFragment {
+                        fragment_index: idx as u32,
+                        source_offset: frag_offset,
+                        length: frag_len,
+                        logical_offset: log_offset,
+                        confidence: ConfidenceLevel::Medium,
+                    });
+                    recovered_size += frag_len;
+                }
+            } else if self.nextents > 0 {
+                signals.extent_validity = Some(false);
+                signals.reasons.push("✗ Extents indicated in inode but could not be parsed from fork".into());
+            }
+        }
+
+        let is_deleted = self.is_deleted();
+        let status = if is_deleted {
+            if recovered_size > 0 && logical_size.map_or(true, |sz| recovered_size >= sz) {
+                RecoveryStatus::Confirmed
+            } else if recovered_size > 0 {
+                RecoveryStatus::Partial
+            } else {
+                RecoveryStatus::Unrecoverable
+            }
+        } else {
+            RecoveryStatus::Confirmed
+        };
+
+        let metadata = self.to_metadata(evidence_id, inode_no);
+
+        RecoveryCandidate {
+            candidate_id: Uuid::new_v4(),
+            evidence_id,
+            status,
+            confidence: signals,
+            metadata: Some(metadata),
+            logical_size,
+            recovered_size: logical_size.map_or(recovered_size, |sz| recovered_size.min(sz)),
+            missing_bytes: logical_size.map_or(0, |sz| sz.saturating_sub(recovered_size)),
+            fragments,
+            recovery_method: if self.format == XfsInodeFmt::Local as u8 {
+                "xfs_inline_data".into()
+            } else {
+                "xfs_extent_recovery".into()
+            },
+            sha256: None,
+            blake3: None,
+            discovered_at: Utc::now(),
+        }
+    }
 }
 
 /// XFS filesystem parser implementing the FilesystemParser trait.
@@ -513,6 +696,32 @@ pub struct XfsParser;
 impl XfsParser {
     pub fn new() -> Self {
         Self
+    }
+
+    /// Re-construct a RecoveryCandidate for a previously scanned ObjectRecord.
+    pub fn candidate_for_record(
+        &self,
+        source: &mut EvidenceSource,
+        record: &ObjectRecord,
+        superblock: &SuperblockInfo,
+    ) -> Result<Option<RecoveryCandidate>> {
+        let inode_size = superblock.extended.get("inode_size").and_then(|v| v.as_u64()).unwrap_or(512) as usize;
+        let buf = source.read_at(record.source_offset, inode_size)?;
+        if let Some(inode) = XfsInodeCore::parse(&buf)? {
+            let agblocks = superblock.extended.get("ag_blocks").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            let agblklog = superblock.extended.get("agblklog").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
+            Ok(Some(inode.to_recovery_candidate(
+                record.evidence_id,
+                record.object_id,
+                &buf,
+                record.source_offset,
+                agblklog,
+                agblocks,
+                superblock.block_size,
+            )))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -571,6 +780,7 @@ impl FilesystemParser for XfsParser {
                 "version": sb.version(),
                 "ag_count": sb.agcount,
                 "ag_blocks": sb.agblocks,
+                "agblklog": sb.agblklog,
                 "inode_size": sb.inodesize,
                 "root_ino": sb.rootino,
                 "features_incompat": sb.features_incompat,
@@ -584,10 +794,8 @@ impl FilesystemParser for XfsParser {
         superblock: &SuperblockInfo,
         callback: &mut dyn FnMut(ObjectRecord),
     ) -> Result<AnalysisSummary> {
-        // Phase 1 implementation: scan all AGs for inode btree records.
-        // Full inode btree traversal is complex; this implements linear
-        // scanning of inode cluster regions which is effective for recovery.
-        let block_size = superblock.block_size as u64;
+        // Phase 1/2 implementation: scan all AGs for inode records,
+        // parse extent descriptors or inline data, and produce recoverable candidates.
         let inode_size: u64 = {
             let buf = source.read_at(0, 512)?;
             if let Some(sb) = XfsSuperblock::parse(&buf)? {
@@ -597,13 +805,19 @@ impl FilesystemParser for XfsParser {
             }
         };
 
+        let agblocks = superblock.extended.get("ag_blocks").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let agblklog = superblock.extended.get("agblklog").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
+        let block_size_u32 = superblock.block_size;
+
         let mut total_objects = 0u64;
         let mut deleted_candidates = 0u64;
         let mut recoverable = 0u64;
+        let mut partial_recoveries = 0u64;
+        let mut unrecoverable = 0u64;
         let mut warnings = Vec::new();
         let evidence_id = source.info.evidence_id;
 
-        // Scan the entire filesystem image in inode-sized chunks,
+        // Scan the filesystem image in inode-sized chunks,
         // looking for inode magic signatures.
         let scan_size = source.info.size;
         let mut offset = 0u64;
@@ -617,32 +831,37 @@ impl FilesystemParser for XfsParser {
                             Ok(Some(inode)) => {
                                 total_objects += 1;
                                 let is_deleted = inode.is_deleted();
-                                let inode_no = offset / inode_size; // approximate
+                                let inode_no = offset / inode_size;
 
-                                let status = if is_deleted {
+                                let cand = inode.to_recovery_candidate(
+                                    evidence_id,
+                                    inode_no,
+                                    &buf,
+                                    offset,
+                                    agblklog,
+                                    agblocks,
+                                    block_size_u32,
+                                );
+
+                                if is_deleted {
                                     deleted_candidates += 1;
-                                    if inode.size > 0 && inode.nextents > 0 {
+                                    if cand.recovered_size > 0 && cand.missing_bytes == 0 {
                                         recoverable += 1;
-                                        RecoveryStatus::Probable
-                                    } else if inode.size > 0 {
-                                        RecoveryStatus::Partial
+                                    } else if cand.recovered_size > 0 {
+                                        partial_recoveries += 1;
                                     } else {
-                                        RecoveryStatus::Unknown
+                                        unrecoverable += 1;
                                     }
-                                } else {
-                                    RecoveryStatus::Confirmed
-                                };
-
-                                let metadata = inode.to_metadata(evidence_id, inode_no);
+                                }
 
                                 let record = ObjectRecord {
-                                    record_id: Uuid::new_v4(),
+                                    record_id: cand.candidate_id,
                                     evidence_id,
                                     object_id: inode_no,
                                     parent_id: None,
                                     filename: None,
-                                    status,
-                                    metadata: Some(metadata),
+                                    status: cand.status,
+                                    metadata: cand.metadata.clone(),
                                     source_offset: offset,
                                 };
                                 callback(record);
@@ -678,31 +897,98 @@ impl FilesystemParser for XfsParser {
             total_objects,
             deleted_candidates,
             recoverable,
-            partial_recoveries: 0,
+            partial_recoveries,
             carved: 0,
-            unrecoverable: 0,
+            unrecoverable,
             warnings,
         })
     }
 
     fn recover_content(
         &self,
-        _source: &mut EvidenceSource,
-        _candidate: &RecoveryCandidate,
-        _output: &mut dyn Write,
+        source: &mut EvidenceSource,
+        candidate: &RecoveryCandidate,
+        output: &mut dyn Write,
     ) -> Result<RecoveryResult> {
-        // Content recovery requires extent parsing — implemented in Phase 2.
-        Ok(RecoveryResult {
-            bytes_written: 0,
-            status: RecoveryStatus::Unknown,
-            warnings: vec![ParseWarning {
-                kind: ParseErrorKind::UnsupportedFeature,
-                message: "XFS content recovery not yet implemented — extent mapping required".into(),
+        use sha2::{Digest, Sha256};
+        let mut sha_hasher = Sha256::new();
+        let mut blake_hasher = blake3::Hasher::new();
+        let mut bytes_written = 0u64;
+        let mut warnings = Vec::new();
+
+        let target_size = candidate.logical_size.unwrap_or(u64::MAX);
+
+        if !candidate.fragments.is_empty() {
+            for frag in &candidate.fragments {
+                if bytes_written >= target_size {
+                    break;
+                }
+                let max_for_frag = frag.length.min(target_size.saturating_sub(bytes_written));
+                if max_for_frag == 0 {
+                    continue;
+                }
+
+                let mut offset = frag.source_offset;
+                let mut remaining = max_for_frag;
+                while remaining > 0 {
+                    let chunk_size = (remaining.min(65536)) as usize;
+                    match source.read_at(offset, chunk_size) {
+                        Ok(data) => {
+                            if data.is_empty() {
+                                break;
+                            }
+                            output.write_all(&data)?;
+                            sha_hasher.update(&data);
+                            blake_hasher.update(&data);
+                            let n = data.len() as u64;
+                            bytes_written += n;
+                            offset += n;
+                            remaining = remaining.saturating_sub(n);
+                        }
+                        Err(e) => {
+                            warnings.push(ParseWarning {
+                                kind: ParseErrorKind::ReadError,
+                                message: format!("Failed reading fragment at offset {}: {}", offset, e),
+                                offset: Some(offset),
+                                object_id: None,
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            warnings.push(ParseWarning {
+                kind: ParseErrorKind::IncompleteData,
+                message: "No recovery fragments available for candidate".into(),
                 offset: None,
-                object_id: None,
-            }],
-            sha256: None,
-            blake3: None,
+                object_id: candidate.metadata.as_ref().and_then(|m| m.object_id.value),
+            });
+        }
+
+        let sha256_hex = hex::encode(sha_hasher.finalize());
+        let blake3_hex = blake_hasher.finalize().to_hex().to_string();
+
+        let status = if bytes_written == 0 && target_size > 0 {
+            RecoveryStatus::Unrecoverable
+        } else if let Some(total) = candidate.logical_size {
+            if bytes_written >= total {
+                RecoveryStatus::Confirmed
+            } else {
+                RecoveryStatus::Partial
+            }
+        } else if bytes_written > 0 {
+            RecoveryStatus::Probable
+        } else {
+            RecoveryStatus::Unknown
+        };
+
+        Ok(RecoveryResult {
+            bytes_written,
+            status,
+            warnings,
+            sha256: Some(sha256_hex),
+            blake3: Some(blake3_hex),
         })
     }
 }
@@ -811,5 +1097,76 @@ mod tests {
         let sb = parser.parse_superblock(&mut src).unwrap();
         assert_eq!(sb.filesystem_type, FilesystemType::Xfs);
         assert_eq!(sb.block_size, 4096);
+    }
+
+    #[test]
+    fn test_xfs_bmbt_unpack() {
+        // Construct a raw 16-byte extent record:
+        // state = 0, startoff = 10, startblock = 100, blockcount = 5
+        let hi = (10u64 & ((1u64 << 54) - 1)) << 9 | ((100u64 >> 43) & 0x1ff);
+        let lo = ((100u64 & ((1u64 << 43) - 1)) << 21) | (5u64 & ((1u64 << 21) - 1));
+        let mut raw = [0u8; 16];
+        raw[0..8].copy_from_slice(&hi.to_be_bytes());
+        raw[8..16].copy_from_slice(&lo.to_be_bytes());
+
+        let rec = XfsBmbtRec::unpack(&raw);
+        assert_eq!(rec.state, 0);
+        assert_eq!(rec.startoff, 10);
+        assert_eq!(rec.startblock, 100);
+        assert_eq!(rec.blockcount, 5);
+        assert_eq!(rec.byte_len(4096), 5 * 4096);
+    }
+
+    #[test]
+    fn test_xfs_recover_content() {
+        use metadata::{ConfidenceLevel, RecoveryFragment};
+
+        let mut data = vec![0u8; 4096 * 4];
+        let secret = b"TRACE_X_FORENSIC_RECOVERY_VERIFIED_CONTENT_12345";
+        data[4096..4096 + secret.len()].copy_from_slice(secret);
+
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(&data).unwrap();
+        tmp.flush().unwrap();
+
+        let mut src = evidence::EvidenceSource::open(
+            tmp.path(),
+            evidence::SourceType::RawImage,
+            None,
+            "test",
+            None,
+        ).unwrap();
+
+        let candidate = RecoveryCandidate {
+            candidate_id: Uuid::new_v4(),
+            evidence_id: src.info.evidence_id,
+            status: RecoveryStatus::Confirmed,
+            confidence: metadata::ConfidenceSignals::new(),
+            metadata: None,
+            logical_size: Some(secret.len() as u64),
+            recovered_size: secret.len() as u64,
+            missing_bytes: 0,
+            fragments: vec![RecoveryFragment {
+                fragment_index: 0,
+                source_offset: 4096,
+                length: secret.len() as u64,
+                logical_offset: 0,
+                confidence: ConfidenceLevel::High,
+            }],
+            recovery_method: "xfs_extent_recovery".into(),
+            sha256: None,
+            blake3: None,
+            discovered_at: chrono::Utc::now(),
+        };
+
+        let mut out = Vec::new();
+        let parser = XfsParser::new();
+        let res = parser.recover_content(&mut src, &candidate, &mut out).unwrap();
+
+        assert_eq!(res.bytes_written, secret.len() as u64);
+        assert_eq!(res.status, RecoveryStatus::Confirmed);
+        assert_eq!(&out, secret);
+        assert!(res.sha256.is_some());
+        assert!(res.blake3.is_some());
     }
 }

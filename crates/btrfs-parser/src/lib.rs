@@ -15,12 +15,10 @@
 
 use std::io::Write;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use byteorder::{LittleEndian, ReadBytesExt};
-use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, warn};
-use uuid::Uuid;
+use tracing::debug;
 
 use evidence::{EvidenceSource, FilesystemType};
 use filesystem::{
@@ -28,8 +26,7 @@ use filesystem::{
     RecoveryResult, SuperblockInfo,
 };
 use metadata::{
-    ConfidenceSignals, ForensicTimestamp, MetaField, ObjectMetadata, ObjectType,
-    RecoveryCandidate, RecoveryStatus, TimestampKind,
+    RecoveryCandidate, RecoveryStatus,
 };
 
 /// Btrfs superblock magic (little-endian): "_BHRfS_M"
@@ -399,17 +396,17 @@ impl FilesystemParser for BtrfsParser {
         &self,
         source: &mut EvidenceSource,
         superblock: &SuperblockInfo,
-        callback: &mut dyn FnMut(ObjectRecord),
+        _callback: &mut dyn FnMut(ObjectRecord),
     ) -> Result<AnalysisSummary> {
         // Phase 1: scan for Btrfs node/leaf magic signatures to identify
         // tree blocks and inode items. Full tree traversal requires chunk
         // mapping which will be implemented in Phase 3.
         let node_size = superblock.block_size as u64;
         let scan_size = source.info.size;
-        let evidence_id = source.info.evidence_id;
+        let _evidence_id = source.info.evidence_id;
 
-        let mut total_objects = 0u64;
-        let mut deleted_candidates = 0u64;
+        let total_objects = 0u64;
+        let deleted_candidates = 0u64;
         let mut warnings = Vec::new();
 
         // Btrfs header magic: 0x47 0xc8 0x1d 0x22 0x6b 0x38 0xa4 0xe0 (node_header.csum validated separately)
@@ -450,21 +447,89 @@ impl FilesystemParser for BtrfsParser {
 
     fn recover_content(
         &self,
-        _source: &mut EvidenceSource,
-        _candidate: &RecoveryCandidate,
-        _output: &mut dyn Write,
+        source: &mut EvidenceSource,
+        candidate: &RecoveryCandidate,
+        output: &mut dyn Write,
     ) -> Result<RecoveryResult> {
-        Ok(RecoveryResult {
-            bytes_written: 0,
-            status: RecoveryStatus::Unknown,
-            warnings: vec![ParseWarning {
-                kind: ParseErrorKind::UnsupportedFeature,
-                message: "Btrfs content recovery requires Phase 3 tree traversal implementation".into(),
+        use sha2::{Digest, Sha256};
+        let mut sha_hasher = Sha256::new();
+        let mut blake_hasher = blake3::Hasher::new();
+        let mut bytes_written = 0u64;
+        let mut warnings = Vec::new();
+
+        let target_size = candidate.logical_size.unwrap_or(u64::MAX);
+
+        if !candidate.fragments.is_empty() {
+            for frag in &candidate.fragments {
+                if bytes_written >= target_size {
+                    break;
+                }
+                let max_for_frag = frag.length.min(target_size.saturating_sub(bytes_written));
+                if max_for_frag == 0 {
+                    continue;
+                }
+
+                let mut offset = frag.source_offset;
+                let mut remaining = max_for_frag;
+                while remaining > 0 {
+                    let chunk_size = (remaining.min(65536)) as usize;
+                    match source.read_at(offset, chunk_size) {
+                        Ok(data) => {
+                            if data.is_empty() {
+                                break;
+                            }
+                            output.write_all(&data)?;
+                            sha_hasher.update(&data);
+                            blake_hasher.update(&data);
+                            let n = data.len() as u64;
+                            bytes_written += n;
+                            offset += n;
+                            remaining = remaining.saturating_sub(n);
+                        }
+                        Err(e) => {
+                            warnings.push(ParseWarning {
+                                kind: ParseErrorKind::ReadError,
+                                message: format!("Failed reading fragment at offset {}: {}", offset, e),
+                                offset: Some(offset),
+                                object_id: None,
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            warnings.push(ParseWarning {
+                kind: ParseErrorKind::IncompleteData,
+                message: "No recovery fragments available for Btrfs candidate".into(),
                 offset: None,
-                object_id: None,
-            }],
-            sha256: None,
-            blake3: None,
+                object_id: candidate.metadata.as_ref().and_then(|m| m.object_id.value),
+            });
+        }
+
+        let sha256_hex = hex::encode(sha_hasher.finalize());
+        let blake3_hex = blake_hasher.finalize().to_hex().to_string();
+
+        let status = if bytes_written == 0 && target_size > 0 {
+            RecoveryStatus::Unrecoverable
+        } else if let Some(total) = candidate.logical_size {
+            if bytes_written >= total {
+                RecoveryStatus::Confirmed
+            } else {
+                RecoveryStatus::Partial
+            }
+        } else if bytes_written > 0 {
+            RecoveryStatus::Probable
+        } else {
+            RecoveryStatus::Unknown
+        };
+
+        Ok(RecoveryResult {
+            bytes_written,
+            status,
+            warnings,
+            sha256: Some(sha256_hex),
+            blake3: Some(blake3_hex),
         })
     }
 }
@@ -558,5 +623,58 @@ mod tests {
         let parser = BtrfsParser::new();
         let sb = parser.parse_superblock(&mut src).unwrap();
         assert_eq!(sb.filesystem_type, FilesystemType::Btrfs);
+    }
+
+    #[test]
+    fn test_btrfs_recover_content() {
+        use metadata::{ConfidenceLevel, RecoveryFragment};
+
+        let mut data = vec![0u8; 4096 * 4];
+        let secret = b"BTRFS_TEST_RECOVERED_FORENSIC_STREAM_DATA_ABCXYZ";
+        data[2048..2048 + secret.len()].copy_from_slice(secret);
+
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(&data).unwrap();
+        tmp.flush().unwrap();
+
+        let mut src = evidence::EvidenceSource::open(
+            tmp.path(),
+            evidence::SourceType::RawImage,
+            None,
+            "test",
+            None,
+        ).unwrap();
+
+        let candidate = RecoveryCandidate {
+            candidate_id: uuid::Uuid::new_v4(),
+            evidence_id: src.info.evidence_id,
+            status: RecoveryStatus::Confirmed,
+            confidence: metadata::ConfidenceSignals::new(),
+            metadata: None,
+            logical_size: Some(secret.len() as u64),
+            recovered_size: secret.len() as u64,
+            missing_bytes: 0,
+            fragments: vec![RecoveryFragment {
+                fragment_index: 0,
+                source_offset: 2048,
+                length: secret.len() as u64,
+                logical_offset: 0,
+                confidence: ConfidenceLevel::High,
+            }],
+            recovery_method: "btrfs_extent_recovery".into(),
+            sha256: None,
+            blake3: None,
+            discovered_at: chrono::Utc::now(),
+        };
+
+        let mut out = Vec::new();
+        let parser = BtrfsParser::new();
+        let res = parser.recover_content(&mut src, &candidate, &mut out).unwrap();
+
+        assert_eq!(res.bytes_written, secret.len() as u64);
+        assert_eq!(res.status, RecoveryStatus::Confirmed);
+        assert_eq!(&out, secret);
+        assert!(res.sha256.is_some());
+        assert!(res.blake3.is_some());
     }
 }

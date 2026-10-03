@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
+import WebModeNotice from '../components/WebModeNotice';
 import {
   FolderOpen, HardDrive, FileCheck2, FileText, ScrollText,
   Shield, Cpu, Plus, ArrowRight,
@@ -371,6 +372,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ════ 1b. EXECUTION MODE NOTICE ════ */}
+      <WebModeNotice compact={false} className="" />
 
       {/* ════ 2. INVESTIGATION PIPELINE ════ */}
       <div className="p-4 rounded-xl bg-[#090c16] border border-[#1c2536] space-y-2">

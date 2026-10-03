@@ -3,9 +3,7 @@
 //! Coordinates carvers and signature scanners across evidence blocks.
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use tracing::info;
-use uuid::Uuid;
 
 use evidence::EvidenceSource;
 use file_carver::{default_carvers, FileCarver};

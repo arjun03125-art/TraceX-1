@@ -7,9 +7,8 @@
 use anyhow::Result;
 use chrono::Utc;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::{info, warn};
+use tracing::info;
 use uuid::Uuid;
 
 use database::AuditEvent;
@@ -79,6 +78,8 @@ impl AuditLogger {
             artifact_id: artifact_id.map(str::to_string),
             tool_version: Some(self.tool_version.clone()),
             details,
+            event_hash: None,
+            previous_event_hash: None,
         };
         info!(action = action, case_id = ?case_id, evidence_id = ?evidence_id, "Audit event");
         AuditEvent::log(conn, &event).map_err(AuditError::Write)

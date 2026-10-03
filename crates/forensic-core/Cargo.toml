@@ -7,6 +7,10 @@ edition.workspace = true
 name = "forensic-recovery"
 path = "src/main.rs"
 
+[[bin]]
+name = "tracex"
+path = "src/main.rs"
+
 [dependencies]
 anyhow.workspace = true
 thiserror.workspace = true

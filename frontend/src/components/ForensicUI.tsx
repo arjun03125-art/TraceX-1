@@ -295,3 +295,32 @@ export function Spinner({ size = 18 }: { size?: number }) {
     />
   );
 }
+
+// ─── Origin Badge (Real / Demo / Simulated) ───────────────────────────────────
+
+export type DataOrigin = 'REAL' | 'DEMO' | 'SIMULATED';
+
+export function OriginBadge({ origin }: { origin: DataOrigin }) {
+  if (origin === 'REAL') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        REAL
+      </span>
+    );
+  }
+  if (origin === 'DEMO') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-cyan-950/60 text-cyan-400 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+        DEMO
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-amber-950/60 text-amber-400 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      SIMULATED
+    </span>
+  );
+}

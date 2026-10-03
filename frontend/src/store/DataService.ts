@@ -6,7 +6,7 @@
  */
 
 import type {
-  Case, Evidence, Investigator, Report, AuditEvent, AuditAction,
+  Case, Evidence, Investigator, Report, Artifact, AuditEvent, AuditAction,
   AppSettings, DashboardLayout, DashboardWidget,
   CreateCaseRequest, UpdateCaseRequest,
   CreateInvestigatorRequest, UpdateInvestigatorRequest,
@@ -21,6 +21,7 @@ const KEYS = {
   investigators: 'tracex_investigators',
   evidence: 'tracex_evidence',
   reports: 'tracex_reports',
+  artifacts: 'tracex_artifacts',
   audit: 'tracex_audit',
   settings: 'tracex_settings',
   dashboardLayout: 'tracex_dashboard_layout',
@@ -491,6 +492,40 @@ export const DataService = {
 
   getAuditEventsByCase(caseId: string): AuditEvent[] {
     return this.getAuditEvents().filter(e => e.case_id === caseId);
+  },
+
+  // ─── Artifacts (Recovered Files) ─────────────────────────────────────────
+
+  getArtifacts(): Artifact[] {
+    return getAll<Artifact>(KEYS.artifacts);
+  },
+
+  getArtifact(id: string): Artifact | undefined {
+    return this.getArtifacts().find(a => a.artifact_id === id);
+  },
+
+  createArtifact(artifact: Artifact): Artifact {
+    const list = this.getArtifacts();
+    list.unshift(artifact);
+    setAll(KEYS.artifacts, list);
+
+    logAuditEvent('ARTIFACT_RECOVERED' as any, {
+      filename: artifact.filename,
+      size_bytes: artifact.size_bytes,
+      recovery_method: artifact.recovery_method,
+      sha256: artifact.sha256,
+    });
+
+    return artifact;
+  },
+
+  deleteArtifact(id: string): boolean {
+    const list = this.getArtifacts();
+    const target = list.find(a => a.artifact_id === id);
+    if (!target) return false;
+
+    setAll(KEYS.artifacts, list.filter(a => a.artifact_id !== id));
+    return true;
   },
 
   // ─── Settings ──────────────────────────────────────────────────────────

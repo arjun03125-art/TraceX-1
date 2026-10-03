@@ -44,7 +44,42 @@ impl Validator {
         Self { hasher: Hasher::new(tool_version) }
     }
 
-    /// Validate recovered data, computing hashes and structural checks.
+    /// Detect file format from standard magic byte signatures.
+    pub fn detect_format(data: &[u8]) -> Option<&'static str> {
+        if data.len() >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+            Some("JPEG")
+        } else if data.len() >= 8 && data.starts_with(b"\x89PNG\r\n\x1a\n") {
+            Some("PNG")
+        } else if data.len() >= 5 && data.starts_with(b"%PDF-") {
+            Some("PDF")
+        } else if data.len() >= 16 && data.starts_with(b"SQLite format 3\0") {
+            Some("SQLite")
+        } else if data.len() >= 4 && data.starts_with(b"PK\x03\x04") {
+            Some("ZIP/Office")
+        } else if data.len() >= 4 && data.starts_with(b"\x7fELF") {
+            Some("ELF")
+        } else if data.len() >= 2 && data.starts_with(b"MZ") {
+            Some("PE/Windows")
+        } else if data.len() >= 3 && data.starts_with(b"GIF") {
+            Some("GIF")
+        } else if std::str::from_utf8(data).is_ok() {
+            Some("Plain Text/UTF-8")
+        } else {
+            None
+        }
+    }
+
+    /// Validate recovered file from filesystem.
+    pub fn validate_file(
+        &self,
+        path: &std::path::Path,
+        expected_sha256: Option<&str>,
+    ) -> Result<ValidationReport> {
+        let data = std::fs::read(path)?;
+        Ok(self.validate_bytes(&data, Uuid::new_v4(), expected_sha256))
+    }
+
+    /// Validate recovered data, computing hashes, signatures, and structural checks.
     pub fn validate_bytes(
         &self,
         data: &[u8],
@@ -93,6 +128,18 @@ impl Validator {
             reasons.push(format!("✓ {} bytes recovered", data.len()));
         }
 
+        // File format signature verification.
+        let detected_format = Self::detect_format(data);
+        let content_parseable = if let Some(fmt) = detected_format {
+            reasons.push(format!("✓ File signature recognized: {}", fmt));
+            Some(true)
+        } else if !data.is_empty() {
+            reasons.push("ℹ Unknown or binary file signature".into());
+            None
+        } else {
+            Some(false)
+        };
+
         // Determine overall status.
         let status = match (structural_valid, hash_valid) {
             (Some(true), Some(true)) => {
@@ -101,7 +148,13 @@ impl Validator {
             }
             (Some(false), _) => ValidationStatus::Invalid,
             (_, Some(false)) => ValidationStatus::Invalid,
-            (Some(true), None) => ValidationStatus::PartiallyValid,
+            (Some(true), None) => {
+                if content_parseable == Some(true) {
+                    ValidationStatus::Valid
+                } else {
+                    ValidationStatus::PartiallyValid
+                }
+            }
             _ => ValidationStatus::Unverified,
         };
 
@@ -110,7 +163,7 @@ impl Validator {
             status,
             structural_valid,
             hash_valid,
-            content_parseable: None, // Format-specific parsers extend this
+            content_parseable,
             reasons,
             sha256,
             blake3,
