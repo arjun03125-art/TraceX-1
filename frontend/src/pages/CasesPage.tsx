@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderOpen, Plus, Search, Calendar, User, Building,
-  FileText, ArrowRight, X, ExternalLink
+  FileText, ArrowRight, X, ExternalLink, CheckCircle2, Activity, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import clsx from 'clsx';
@@ -141,6 +141,43 @@ export default function CasesPage() {
                       {c.case_title}
                     </div>
 
+                    {c.recovery_progress !== undefined && (
+                      <div className="mt-2.5 p-2 rounded-lg bg-[#050a16] border border-[#141f38] space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono font-bold">
+                          <span className={clsx(
+                            'flex items-center gap-1',
+                            c.recovery_progress >= 100 ? 'text-emerald-400' : 'text-amber-400'
+                          )}>
+                            {c.recovery_progress >= 100 ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <span>RETRIEVED (100%)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Activity className="w-3 h-3 text-amber-400 animate-pulse" />
+                                <span>{c.recovery_progress}% RECOVERED</span>
+                              </>
+                            )}
+                          </span>
+                          <span className={c.recovery_progress >= 100 ? 'text-emerald-300' : 'text-amber-300'}>
+                            {c.recovery_progress}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-[#0d162a] rounded-full overflow-hidden">
+                          <div
+                            className={clsx(
+                              'h-full rounded-full transition-all duration-500',
+                              c.recovery_progress >= 100
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                                : 'bg-gradient-to-r from-amber-500 to-cyan-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                            )}
+                            style={{ width: `${c.recovery_progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <div className="text-[11px] text-slate-500 mt-2 flex items-center justify-between">
                       <span>{c.investigator}</span>
                       <span>{new Date(c.created_at).toLocaleDateString()}</span>
@@ -207,6 +244,68 @@ export default function CasesPage() {
                   <div className="text-slate-300">{new Date(selectedCase.updated_at).toLocaleString()}</div>
                 </div>
               </div>
+
+              {selectedCase.recovery_progress !== undefined && (
+                <div className={clsx(
+                  'p-4 rounded-xl border space-y-3',
+                  selectedCase.recovery_progress >= 100
+                    ? 'bg-gradient-to-br from-[#061e16] to-[#04120d] border-emerald-500/30'
+                    : 'bg-gradient-to-br from-[#1c1404] to-[#0c0d17] border-amber-500/30'
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {selectedCase.recovery_progress >= 100 ? (
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        </div>
+                      ) : (
+                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                          <Activity className="w-4 h-4 text-amber-400 animate-pulse" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-xs font-bold text-slate-100 uppercase tracking-wide">
+                          {selectedCase.recovery_progress >= 100
+                            ? 'Forensic Retrieval Complete (100%)'
+                            : 'Partial Inode Reconstruction (70% Retrieved)'}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {selectedCase.recovery_progress >= 100
+                            ? 'All extent blocks recovered • Cryptographic hash verified'
+                            : 'Extent mapping complete • 30% slack space carving in progress'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={clsx(
+                      'text-sm font-mono font-extrabold px-2.5 py-1 rounded-md border',
+                      selectedCase.recovery_progress >= 100
+                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                    )}>
+                      {selectedCase.recovery_progress}%
+                    </span>
+                  </div>
+
+                  <div className="h-2 w-full bg-[#0d162a] rounded-full overflow-hidden">
+                    <div
+                      className={clsx(
+                        'h-full rounded-full transition-all duration-700',
+                        selectedCase.recovery_progress >= 100
+                          ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-[0_0_12px_rgba(16,185,129,0.6)]'
+                          : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-cyan-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]'
+                      )}
+                      style={{ width: `${selectedCase.recovery_progress}%` }}
+                    />
+                  </div>
+
+                  {selectedCase.notes && (
+                    <div className="text-[11px] text-slate-300 font-sans border-t border-white/5 pt-2">
+                      <span className="text-slate-400 font-mono font-semibold text-[10px] mr-1.5 uppercase">Technician Notes:</span>
+                      {selectedCase.notes}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">

@@ -141,6 +141,16 @@ export default function CaseDetailPage() {
               )}>
                 {currentCase.priority || 'MEDIUM'} PRIORITY
               </span>
+              {currentCase.recovery_progress !== undefined && (
+                <span className={clsx(
+                  'px-2 py-0.5 rounded text-[10px] font-mono font-bold border',
+                  currentCase.recovery_progress >= 100
+                    ? 'text-emerald-300 border-emerald-500/40 bg-emerald-950/40'
+                    : 'text-amber-300 border-amber-500/40 bg-amber-950/40'
+                )}>
+                  {currentCase.recovery_progress >= 100 ? '100% RETRIEVED' : `${currentCase.recovery_progress}% RECOVERED`}
+                </span>
+              )}
             </div>
             <h1 className="text-xl font-bold text-slate-100 font-mono mt-1">
               {currentCase.case_title}

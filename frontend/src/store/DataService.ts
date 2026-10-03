@@ -13,6 +13,12 @@ import type {
   CreateEvidenceRequest, UpdateEvidenceRequest,
   CreateReportRequest, UpdateReportRequest,
 } from '../types/forensic';
+import {
+  INITIAL_CASES,
+  INITIAL_EVIDENCE,
+  INITIAL_ARTIFACTS,
+  INITIAL_AUDIT
+} from './forensicStore';
 
 // ─── Storage Keys ───────────────────────────────────────────────────────────
 
@@ -152,7 +158,21 @@ export const DataService = {
   // ─── Cases ──────────────────────────────────────────────────────────────
 
   getCases(): Case[] {
-    return getAll<Case>(KEYS.cases);
+    const stored = getAll<Case>(KEYS.cases);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.cases, INITIAL_CASES);
+      return INITIAL_CASES;
+    }
+    const hasRetrieved = stored.some(c => c.case_id === 'case-retrieved-100' || c.case_number === 'CR-2026-RET-01');
+    const hasPartial = stored.some(c => c.case_id === 'case-partial-70' || c.case_number === 'CR-2026-REC-70');
+    if (!hasRetrieved || !hasPartial) {
+      const merged = [...stored];
+      if (!hasRetrieved) merged.unshift(INITIAL_CASES[0]);
+      if (!hasPartial) merged.splice(1, 0, INITIAL_CASES[1]);
+      setAll(KEYS.cases, merged);
+      return merged;
+    }
+    return stored;
   },
 
   getCase(id: string): Case | undefined {
@@ -315,7 +335,21 @@ export const DataService = {
   // ─── Evidence ──────────────────────────────────────────────────────────
 
   getEvidence(): Evidence[] {
-    return getAll<Evidence>(KEYS.evidence);
+    const stored = getAll<Evidence>(KEYS.evidence);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.evidence, INITIAL_EVIDENCE);
+      return INITIAL_EVIDENCE;
+    }
+    const hasRet = stored.some(e => e.evidence_id === 'ev-ret-001');
+    const hasPart = stored.some(e => e.evidence_id === 'ev-part-002');
+    if (!hasRet || !hasPart) {
+      const merged = [...stored];
+      if (!hasRet) merged.unshift(INITIAL_EVIDENCE[0]);
+      if (!hasPart) merged.splice(1, 0, INITIAL_EVIDENCE[1]);
+      setAll(KEYS.evidence, merged);
+      return merged;
+    }
+    return stored;
   },
 
   getEvidenceItem(id: string): Evidence | undefined {
@@ -487,7 +521,12 @@ export const DataService = {
   // ─── Audit Events ──────────────────────────────────────────────────────
 
   getAuditEvents(): AuditEvent[] {
-    return getAll<AuditEvent>(KEYS.audit);
+    const stored = getAll<AuditEvent>(KEYS.audit);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.audit, INITIAL_AUDIT);
+      return INITIAL_AUDIT;
+    }
+    return stored;
   },
 
   getAuditEventsByCase(caseId: string): AuditEvent[] {
@@ -497,7 +536,19 @@ export const DataService = {
   // ─── Artifacts (Recovered Files) ─────────────────────────────────────────
 
   getArtifacts(): Artifact[] {
-    return getAll<Artifact>(KEYS.artifacts);
+    const stored = getAll<Artifact>(KEYS.artifacts);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.artifacts, INITIAL_ARTIFACTS);
+      return INITIAL_ARTIFACTS;
+    }
+    const hasRet = stored.some(a => a.artifact_id === 'art-ret-101');
+    const hasPart = stored.some(a => a.artifact_id === 'art-part-201');
+    if (!hasRet || !hasPart) {
+      const merged = [...stored, ...INITIAL_ARTIFACTS.filter(ia => !stored.some(s => s.artifact_id === ia.artifact_id))];
+      setAll(KEYS.artifacts, merged);
+      return merged;
+    }
+    return stored;
   },
 
   getArtifact(id: string): Artifact | undefined {

@@ -49,6 +49,8 @@ export interface Case {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  recovery_progress?: number;
+  recovery_state?: 'RETRIEVED' | 'PARTIAL_70' | 'PENDING' | string;
 }
 
 // ─── Investigator ───────────────────────────────────────────────────────────
