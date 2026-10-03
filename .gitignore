@@ -39,6 +39,7 @@ forensic-case.db-wal
 *.db-shm
 *.db-wal
 *.img
+!fixtures/*.img
 *.raw
 *.e01
 *.aff4

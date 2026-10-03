@@ -118,6 +118,22 @@ impl AuditLogger {
         self.log(conn, actions::REPORT_GENERATED, Some(case_id), None, None,
             Some(format!("format={} path={}", format, path)))
     }
+
+    pub fn verify_chain(&self, conn: &Connection) -> Result<bool, AuditError> {
+        let mut stmt = conn.prepare("SELECT event_time FROM audit_events ORDER BY rowid ASC")
+            .map_err(database::DbError::Sqlite)?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(0))
+            .map_err(database::DbError::Sqlite)?;
+        let mut prev = String::new();
+        for t in rows {
+            let cur = t.map_err(database::DbError::Sqlite)?;
+            if !prev.is_empty() && cur < prev {
+                return Ok(false);
+            }
+            prev = cur;
+        }
+        Ok(true)
+    }
 }
 
 #[cfg(test)]

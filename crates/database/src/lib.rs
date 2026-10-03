@@ -339,6 +339,35 @@ impl Case {
         }))?;
         rows.collect::<Result<Vec<_>, _>>().map_err(DbError::Sqlite)
     }
+
+    pub fn update_status(conn: &Connection, case_id: &str, status: &str) -> Result<Self, DbError> {
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE cases SET status = ?1, updated_at = ?2 WHERE case_id = ?3",
+            params![status, now, case_id],
+        )?;
+        Self::find_by_id(conn, case_id)?.ok_or_else(|| DbError::NotFound(format!("Case {}", case_id)))
+    }
+
+    pub fn update(
+        conn: &Connection,
+        case_id: &str,
+        title: Option<&str>,
+        description: Option<&str>,
+        status: Option<&str>,
+    ) -> Result<Self, DbError> {
+        let now = Utc::now().to_rfc3339();
+        if let Some(t) = title {
+            conn.execute("UPDATE cases SET case_title = ?1, updated_at = ?2 WHERE case_id = ?3", params![t, now, case_id])?;
+        }
+        if let Some(d) = description {
+            conn.execute("UPDATE cases SET description = ?1, updated_at = ?2 WHERE case_id = ?3", params![d, now, case_id])?;
+        }
+        if let Some(s) = status {
+            conn.execute("UPDATE cases SET status = ?1, updated_at = ?2 WHERE case_id = ?3", params![s, now, case_id])?;
+        }
+        Self::find_by_id(conn, case_id)?.ok_or_else(|| DbError::NotFound(format!("Case {}", case_id)))
+    }
 }
 
 /// Evidence record.

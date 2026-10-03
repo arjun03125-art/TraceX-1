@@ -4,12 +4,12 @@ version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "forensic-recovery"
+name = "tracex"
 path = "src/main.rs"
 
 [[bin]]
-name = "tracex"
-path = "src/main.rs"
+name = "run_all_test_cases"
+path = "src/bin/run_all_test_cases.rs"
 
 [dependencies]
 anyhow.workspace = true
@@ -40,6 +40,8 @@ timeline = { path = "../timeline" }
 reporting = { path = "../reporting" }
 database = { path = "../database" }
 audit = { path = "../audit" }
+test-fixtures = { path = "../test-fixtures" }
+tempfile.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
