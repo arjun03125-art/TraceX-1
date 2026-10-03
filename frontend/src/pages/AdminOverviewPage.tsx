@@ -24,15 +24,15 @@ export default function AdminOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-            <LayoutDashboard className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <LayoutDashboard className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-100 font-mono tracking-tight">
                 Administrator Portal Overview
               </h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/70 border border-purple-700/50 text-purple-300 font-bold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/50 text-cyan-300 font-bold">
                 SYSTEM ACTIVE
               </span>
             </div>
@@ -45,7 +45,7 @@ export default function AdminOverviewPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/admin/cases')}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.25)]"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
           >
             <Plus className="w-4 h-4" />
             Create Case
@@ -59,7 +59,7 @@ export default function AdminOverviewPage() {
           <button
             key={m.label}
             onClick={() => navigate(m.link)}
-            className="group relative p-4 rounded-xl bg-gradient-to-b from-[#0b101f] to-[#080d19] border border-[#162137] hover:border-purple-500/40 transition-all duration-200 shadow-[0_4px_20px_rgba(0,0,0,0.3)] text-left"
+            className="group relative p-4 rounded-xl bg-gradient-to-b from-[#0b101f] to-[#080d19] border border-[#162137] hover:border-cyan-500/40 transition-all duration-200 shadow-[0_4px_20px_rgba(0,0,0,0.3)] text-left"
           >
             <div
               className="absolute top-0 left-4 right-4 h-[1px] opacity-40 group-hover:opacity-100 transition-opacity"
@@ -135,12 +135,12 @@ export default function AdminOverviewPage() {
         <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-5 shadow-[0_4px_25px_rgba(0,0,0,0.4)] space-y-3">
           <div className="flex items-center justify-between pb-3 border-b border-[#141f36]">
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-purple-400" />
+              <Cpu className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-bold font-mono text-slate-100">Engine Status</h3>
             </div>
             <button
               onClick={() => navigate('/admin/engine')}
-              className="text-[10px] font-mono text-purple-400 hover:underline flex items-center gap-1"
+              className="text-[10px] font-mono text-cyan-400 hover:underline flex items-center gap-1"
             >
               Config <ArrowRight className="w-3 h-3" />
             </button>
@@ -271,24 +271,24 @@ export default function AdminOverviewPage() {
       {/* Quick Access to Administration Modules */}
       <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-5 shadow-[0_4px_25px_rgba(0,0,0,0.4)]">
         <h3 className="text-sm font-bold text-slate-100 font-mono mb-4 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-purple-400" />
+          <Shield className="w-4 h-4 text-cyan-400" />
           Administrator Management Portals
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
           {[
             { label: 'Case Management', icon: FolderOpen, link: '/admin/cases', color: '#3b82f6', desc: 'Case creation, edits, archival' },
-            { label: 'Investigators', icon: Users, link: '/admin/investigators', color: '#a78bfa', desc: 'Examiner roles & operator IDs' },
+            { label: 'Investigators', icon: Users, link: '/admin/investigators', color: '#06b6d4', desc: 'Examiner roles & operator IDs' },
             { label: 'Evidence Management', icon: HardDrive, link: '/admin/evidence', color: '#22d3ee', desc: 'Disk images, hashes, FS detection' },
             { label: 'Audit Trail', icon: ScrollText, link: '/admin/audit', color: '#fbbf24', desc: 'Cryptographic append-only log' },
             { label: 'Report Management', icon: FileText, link: '/admin/reports', color: '#34d399', desc: 'HTML, JSON, CSV exports' },
-            { label: 'Forensic Engine', icon: Cpu, link: '/admin/engine', color: '#c084fc', desc: 'XFS/Btrfs parsers & carving' },
-            { label: 'Security Policies', icon: Shield, link: '/admin/security', color: '#f43f5e', desc: 'Hardware write-block & sandbox' },
-            { label: 'System Settings', icon: Settings, link: '/admin/settings', color: '#38bdf8', desc: 'Storage paths & preferences' },
+            { label: 'Forensic Engine', icon: Cpu, link: '/admin/engine', color: '#38bdf8', desc: 'XFS/Btrfs parsers & carving' },
+            { label: 'Security Policies', icon: Shield, link: '/admin/security', color: '#10b981', desc: 'Hardware write-block & sandbox' },
+            { label: 'System Settings', icon: Settings, link: '/admin/settings', color: '#60a5fa', desc: 'Storage paths & preferences' },
           ].map(action => (
             <button
               key={action.label}
               onClick={() => navigate(action.link)}
-              className="group p-3.5 rounded-xl bg-[#050811] border border-[#152138] hover:border-purple-500/40 transition-all text-left space-y-1.5"
+              className="group p-3.5 rounded-xl bg-[#050811] border border-[#152138] hover:border-cyan-500/40 transition-all text-left space-y-1.5"
             >
               <div className="flex items-center gap-2">
                 <div

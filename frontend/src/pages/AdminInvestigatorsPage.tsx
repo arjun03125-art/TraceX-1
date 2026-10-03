@@ -140,8 +140,8 @@ export default function AdminInvestigatorsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
-              <Users className="w-4 h-4 text-purple-400" />
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <Users className="w-4 h-4 text-cyan-400" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-100 font-mono tracking-tight">
@@ -156,7 +156,7 @@ export default function AdminInvestigatorsPage() {
 
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.25)] self-start md:self-auto"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)] self-start md:self-auto"
         >
           <Plus className="w-4 h-4" />
           ADD INVESTIGATOR
@@ -173,7 +173,7 @@ export default function AdminInvestigatorsPage() {
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search by examiner name, role, agency, or operator ID..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function AdminInvestigatorsPage() {
           <select
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value as typeof statusFilter); setCurrentPage(1); }}
-            className="px-2.5 py-1.5 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-xs font-mono text-slate-300 focus:outline-none focus:border-purple-500/50"
+            className="px-2.5 py-1.5 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500/50"
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -196,8 +196,8 @@ export default function AdminInvestigatorsPage() {
       {/* Table or Empty State */}
       {investigators.length === 0 ? (
         <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-12 text-center shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-purple-400" />
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-cyan-400" />
           </div>
           <h2 className="text-base font-bold text-slate-200 font-mono tracking-tight">
             NO INVESTIGATORS
@@ -207,7 +207,7 @@ export default function AdminInvestigatorsPage() {
           </p>
           <button
             onClick={handleOpenCreate}
-            className="mt-6 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-bold text-xs transition-all inline-flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.25)]"
+            className="mt-6 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-mono font-bold text-xs transition-all inline-flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
           >
             <Plus className="w-4 h-4" />
             ADD INVESTIGATOR
@@ -235,7 +235,7 @@ export default function AdminInvestigatorsPage() {
               <tbody className="divide-y divide-[#131d33]">
                 {paginatedList.map(inv => (
                   <tr key={inv.investigator_id} className="hover:bg-[#0e1629]/60 transition-colors group">
-                    <td className="py-3 px-4 text-purple-400 font-semibold">
+                    <td className="py-3 px-4 text-cyan-400 font-semibold">
                       {inv.operator_id || <span className="text-slate-600">—</span>}
                     </td>
                     <td className="py-3 px-4 font-medium text-slate-200">
@@ -272,7 +272,7 @@ export default function AdminInvestigatorsPage() {
                         <button
                           onClick={() => handleOpenEdit(inv)}
                           title="Edit Investigator"
-                          className="p-1.5 rounded-lg bg-[#111b30] hover:bg-purple-500/20 hover:text-purple-300 text-slate-400 transition-colors"
+                          className="p-1.5 rounded-lg bg-[#111b30] hover:bg-blue-500/20 hover:text-blue-300 text-slate-400 transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -332,7 +332,7 @@ export default function AdminInvestigatorsPage() {
           <div className="w-full max-w-lg rounded-2xl bg-[#090e1c] border border-[#1c2c4d] shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden font-mono text-xs">
             <div className="px-6 py-4 border-b border-[#16223b] flex items-center justify-between bg-[#0c1326]">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-400" />
+                <Users className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-bold text-slate-100">Add Investigator</h3>
               </div>
               <button onClick={() => setIsCreateOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-200">
@@ -351,7 +351,7 @@ export default function AdminInvestigatorsPage() {
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Elena Rostova"
                   className={clsx(
-                    'w-full px-3 py-2 rounded-lg bg-[#0d1527] border text-slate-200 focus:outline-none focus:border-purple-500',
+                    'w-full px-3 py-2 rounded-lg bg-[#0d1527] border text-slate-200 focus:outline-none focus:border-cyan-500',
                     formErrors.name ? 'border-rose-500/60' : 'border-[#1b2a47]'
                   )}
                 />
@@ -368,7 +368,7 @@ export default function AdminInvestigatorsPage() {
                     value={formData.role}
                     onChange={e => setFormData({ ...formData, role: e.target.value })}
                     placeholder="e.g. Senior Digital Forensics Examiner"
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
@@ -378,7 +378,7 @@ export default function AdminInvestigatorsPage() {
                     value={formData.operator_id}
                     onChange={e => setFormData({ ...formData, operator_id: e.target.value })}
                     placeholder="e.g. OP-842"
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -391,7 +391,7 @@ export default function AdminInvestigatorsPage() {
                     value={formData.organization}
                     onChange={e => setFormData({ ...formData, organization: e.target.value })}
                     placeholder="e.g. Forensic Services Bureau"
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
@@ -402,7 +402,7 @@ export default function AdminInvestigatorsPage() {
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     placeholder="examiner@lab.org"
                     className={clsx(
-                      'w-full px-3 py-2 rounded-lg bg-[#0d1527] border text-slate-200 focus:outline-none focus:border-purple-500',
+                      'w-full px-3 py-2 rounded-lg bg-[#0d1527] border text-slate-200 focus:outline-none focus:border-cyan-500',
                       formErrors.email ? 'border-rose-500/60' : 'border-[#1b2a47]'
                     )}
                   />
@@ -417,7 +417,7 @@ export default function AdminInvestigatorsPage() {
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Certifications (GCFA, EnCE), jurisdiction, or internal notes..."
-                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -431,7 +431,7 @@ export default function AdminInvestigatorsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold shadow-[0_0_15px_rgba(6,182,212,0.25)]"
                 >
                   Save Investigator
                 </button>
@@ -447,7 +447,7 @@ export default function AdminInvestigatorsPage() {
           <div className="w-full max-w-lg rounded-2xl bg-[#090e1c] border border-[#1c2c4d] shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden font-mono text-xs">
             <div className="px-6 py-4 border-b border-[#16223b] flex items-center justify-between bg-[#0c1326]">
               <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-purple-400" />
+                <Edit3 className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-bold text-slate-100">Edit Investigator: {editingInv.name}</h3>
               </div>
               <button onClick={() => setEditingInv(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-200">
@@ -462,7 +462,7 @@ export default function AdminInvestigatorsPage() {
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -473,7 +473,7 @@ export default function AdminInvestigatorsPage() {
                     type="text"
                     value={formData.role}
                     onChange={e => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
@@ -482,7 +482,7 @@ export default function AdminInvestigatorsPage() {
                     type="text"
                     value={formData.operator_id}
                     onChange={e => setFormData({ ...formData, operator_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function AdminInvestigatorsPage() {
                     type="text"
                     value={formData.organization}
                     onChange={e => setFormData({ ...formData, organization: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
@@ -502,7 +502,7 @@ export default function AdminInvestigatorsPage() {
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value as InvestigatorStatus })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
@@ -517,7 +517,7 @@ export default function AdminInvestigatorsPage() {
                   type="email"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -527,7 +527,7 @@ export default function AdminInvestigatorsPage() {
                   rows={2}
                   value={formData.notes}
                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0d1527] border border-[#1b2a47] text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -541,7 +541,7 @@ export default function AdminInvestigatorsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold shadow-[0_0_15px_rgba(6,182,212,0.25)]"
                 >
                   Save Changes
                 </button>
@@ -597,7 +597,7 @@ export default function AdminInvestigatorsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-base font-bold text-slate-100">{viewingInv.name}</h4>
-                  <p className="text-xs text-purple-400 font-semibold mt-0.5">{viewingInv.role}</p>
+                  <p className="text-xs text-cyan-400 font-semibold mt-0.5">{viewingInv.role}</p>
                 </div>
                 <span className={clsx(
                   'px-2 py-0.5 rounded text-[10px] font-semibold border',
@@ -642,7 +642,7 @@ export default function AdminInvestigatorsPage() {
                     setViewingInv(null);
                     handleOpenEdit(toEdit);
                   }}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-colors"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors"
                 >
                   Edit Investigator
                 </button>

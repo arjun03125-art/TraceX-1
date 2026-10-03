@@ -1,5 +1,5 @@
 /**
- * AuthContext — Role-based access control and identity management for TRACE X.
+ * AuthContext — Role-based access control and Administrator Authentication for TRACE X.
  * 
  * Manages active user identity and enforces route protection between
  * INVESTIGATOR (normal forensic workspace) and ADMINISTRATOR (isolated admin portal).
@@ -32,8 +32,11 @@ export const DEFAULT_USERS: Record<UserRole, AuthUser> = {
 interface AuthContextType {
   currentUser: AuthUser;
   currentRole: UserRole;
+  isAdminAuthenticated: boolean;
   isAdmin: boolean;
   isInvestigator: boolean;
+  adminLogin: (username: string, password: string) => { success: boolean; error?: string };
+  adminLogout: () => void;
   loginAs: (role: UserRole) => void;
   switchRole: () => void;
   logout: () => void;
@@ -42,11 +45,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('tracex_admin_authenticated') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     try {
-      const saved = localStorage.getItem('tracex_auth_role');
-      if (saved === 'ADMINISTRATOR' || saved === 'INVESTIGATOR') {
-        return saved;
+      if (sessionStorage.getItem('tracex_admin_authenticated') === 'true') {
+        return 'ADMINISTRATOR';
       }
     } catch {
       // fallback
@@ -56,12 +66,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const currentUser = useMemo(() => DEFAULT_USERS[currentRole], [currentRole]);
 
-  const loginAs = useCallback((role: UserRole) => {
-    setCurrentRole(role);
+  const adminLogin = useCallback((username: string, password: string) => {
+    if (username.trim() === 'admin' && password === 'admin123') {
+      setIsAdminAuthenticated(true);
+      setCurrentRole('ADMINISTRATOR');
+      try {
+        sessionStorage.setItem('tracex_admin_authenticated', 'true');
+        localStorage.setItem('tracex_auth_role', 'ADMINISTRATOR');
+      } catch {
+        // ignore
+      }
+      return { success: true };
+    }
+    return { success: false, error: 'Invalid username or password. Access denied.' };
+  }, []);
+
+  const adminLogout = useCallback(() => {
+    setIsAdminAuthenticated(false);
+    setCurrentRole('INVESTIGATOR');
     try {
-      localStorage.setItem('tracex_auth_role', role);
+      sessionStorage.removeItem('tracex_admin_authenticated');
+      localStorage.setItem('tracex_auth_role', 'INVESTIGATOR');
     } catch {
       // ignore
+    }
+  }, []);
+
+  const loginAs = useCallback((role: UserRole) => {
+    setCurrentRole(role);
+    if (role === 'ADMINISTRATOR') {
+      setIsAdminAuthenticated(true);
+      try {
+        sessionStorage.setItem('tracex_admin_authenticated', 'true');
+        localStorage.setItem('tracex_auth_role', 'ADMINISTRATOR');
+      } catch {}
+    } else {
+      setIsAdminAuthenticated(false);
+      try {
+        sessionStorage.removeItem('tracex_admin_authenticated');
+        localStorage.setItem('tracex_auth_role', 'INVESTIGATOR');
+      } catch {}
     }
   }, []);
 
@@ -70,18 +114,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [currentRole, loginAs]);
 
   const logout = useCallback(() => {
-    loginAs('INVESTIGATOR');
-  }, [loginAs]);
+    adminLogout();
+  }, [adminLogout]);
 
   const value = useMemo(() => ({
     currentUser,
     currentRole,
-    isAdmin: currentRole === 'ADMINISTRATOR',
+    isAdminAuthenticated,
+    isAdmin: currentRole === 'ADMINISTRATOR' && isAdminAuthenticated,
     isInvestigator: currentRole === 'INVESTIGATOR',
+    adminLogin,
+    adminLogout,
     loginAs,
     switchRole,
     logout,
-  }), [currentUser, currentRole, loginAs, switchRole, logout]);
+  }), [currentUser, currentRole, isAdminAuthenticated, adminLogin, adminLogout, loginAs, switchRole, logout]);
 
   return (
     <AuthContext.Provider value={value}>

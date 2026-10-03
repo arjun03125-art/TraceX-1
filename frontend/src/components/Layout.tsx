@@ -189,21 +189,21 @@ export default function Layout() {
           </nav>
         </div>
 
-        {/* Administrator Portal Switcher (Visible if user is Admin or for seamless role transition) */}
+        {/* Administrator Portal Switcher (Visible if user is Admin) */}
         {isAdmin && (
-          <div className="mx-3 mb-2 p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+          <div className="mx-3 mb-2 p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-purple-300 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                Admin Privileges
+              <span className="text-[10px] font-mono font-bold text-cyan-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                Administrator Active
               </span>
-              <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-purple-900/80 text-purple-200">
+              <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-cyan-900/60 text-cyan-200">
                 ACTIVE
               </span>
             </div>
             <button
               onClick={() => navigate('/admin')}
-              className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+              className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_10px_rgba(6,182,212,0.25)]"
             >
               Open Admin Portal →
             </button>
@@ -314,30 +314,24 @@ export default function Layout() {
               <span className="tabular-nums font-mono text-slate-300">{utcTime || 'UTC'}</span>
             </div>
 
-            {/* Role indicator / switch button */}
-            <button
-              onClick={switchRole}
-              title="Click to toggle between Investigator and Administrator role"
-              className={clsx(
-                'px-2.5 py-1 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-all',
-                isAdmin
-                  ? 'bg-purple-950/60 border-purple-500/50 text-purple-300'
-                  : 'bg-cyan-950/60 border-cyan-500/40 text-cyan-300'
-              )}
+            {/* Current Role badge */}
+            <div
+              className="px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs font-mono flex items-center gap-1.5 shadow-inner"
+              title={`Logged in as ${currentUser.name} (${currentRole})`}
             >
-              <KeyRound className="w-3.5 h-3.5" />
+              <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden md:inline">Role: {currentRole}</span>
-            </button>
+            </div>
 
-            {/* Administrator Portal direct jump if Admin */}
-            {isAdmin && (
-              <button
-                onClick={() => navigate('/admin')}
-                className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold transition-all shadow-[0_0_12px_rgba(168,85,247,0.3)] flex items-center gap-1"
-              >
-                Admin Portal
-              </button>
-            )}
+            {/* Administrator Portal jump */}
+            <button
+              onClick={() => navigate('/admin')}
+              title="Open Administrator Portal (Authentication required)"
+              className="px-3 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 hover:border-cyan-400/60 text-cyan-200 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.12)]"
+            >
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Admin Portal</span>
+            </button>
           </div>
         </header>
 

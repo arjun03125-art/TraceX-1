@@ -19,6 +19,7 @@ import AuditLogPage from './pages/AuditLogPage';
 import SettingsPage from './pages/SettingsPage';
 
 // Administrator Portal Pages
+import AdminLoginPage from './pages/AdminLoginPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminCasesPage from './pages/AdminCasesPage';
 import AdminInvestigatorsPage from './pages/AdminInvestigatorsPage';
@@ -35,6 +36,12 @@ export default function App() {
       {/* Landing page & Guided Demo */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/demo" element={<DemoPage />} />
+
+      {/* ─────────────────────────────────────────────────────────────
+          ADMINISTRATOR AUTHENTICATION ROUTE
+          Publicly accessible dedicated admin login portal
+          ───────────────────────────────────────────────────────────── */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
 
       {/* ─────────────────────────────────────────────────────────────
           INVESTIGATOR WORKSPACE ROUTES
@@ -58,12 +65,12 @@ export default function App() {
 
       {/* ─────────────────────────────────────────────────────────────
           ADMINISTRATOR PORTAL ROUTES
-          Dedicated AdminLayout with route-level role protection
+          Dedicated AdminLayout with route-level authentication protection
           ───────────────────────────────────────────────────────────── */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRole="ADMINISTRATOR">
+          <ProtectedRoute>
             <AdminLayout />
           </ProtectedRoute>
         }

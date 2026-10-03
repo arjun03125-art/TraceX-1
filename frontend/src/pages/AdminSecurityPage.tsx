@@ -24,8 +24,8 @@ export default function AdminSecurityPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-            <ShieldCheck className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <ShieldCheck className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export default function AdminSecurityPage() {
 
         <button
           onClick={handleVerifyImmutability}
-          className="px-4 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-700/50 text-purple-300 font-mono text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+          className="px-4 py-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-700/50 text-cyan-300 font-mono text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Verify Integrity Chain
@@ -166,12 +166,12 @@ export default function AdminSecurityPage() {
         <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-5 space-y-4 shadow-[0_4px_25px_rgba(0,0,0,0.4)]">
           <div className="flex items-center justify-between pb-3 border-b border-[#141f36]">
             <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-purple-400" />
+              <KeyRound className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-bold font-mono text-slate-100">
                 Audit Immutability & Anti-Rewrite
               </h3>
             </div>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-purple-950/60 border border-purple-700/40 text-purple-300 font-bold">
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-700/40 text-cyan-300 font-bold">
               IMMUTABLE
             </span>
           </div>
@@ -183,7 +183,7 @@ export default function AdminSecurityPage() {
           <div className="p-3.5 rounded-xl bg-[#050811] border border-[#152138] space-y-2 font-mono text-xs">
             <div className="flex items-center justify-between">
               <span className="text-slate-300">Database Constraints:</span>
-              <span className="text-purple-300 font-bold">APPEND-ONLY (No UPDATE/DELETE)</span>
+              <span className="text-cyan-300 font-bold">APPEND-ONLY (No UPDATE/DELETE)</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-300">Cryptographic Hash Chaining:</span>

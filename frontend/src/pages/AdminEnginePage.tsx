@@ -49,15 +49,15 @@ export default function AdminEnginePage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-            <Cpu className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <Cpu className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-100 font-mono tracking-tight">
                 Forensic Engine Configuration
               </h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/70 border border-purple-700/50 text-purple-300 font-bold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/50 text-cyan-300 font-bold">
                 CORE v0.1.0
               </span>
             </div>
@@ -69,7 +69,7 @@ export default function AdminEnginePage() {
 
         <button
           onClick={handleSave}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.25)]"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
         >
           <Save className="w-4 h-4" />
           {savedNotice ? 'Configuration Saved!' : 'Save Engine Settings'}
@@ -131,7 +131,7 @@ export default function AdminEnginePage() {
         {/* Section 1: Filesystem Engine Config */}
         <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-5 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#141f36]">
-            <Layers className="w-4 h-4 text-purple-400" />
+            <Layers className="w-4 h-4 text-cyan-400" />
             <h3 className="text-sm font-bold font-mono text-slate-100">Filesystem Parsers</h3>
           </div>
 
@@ -170,7 +170,7 @@ export default function AdminEnginePage() {
                   type="checkbox"
                   checked={engineSettings.xfsCrcEnforcement}
                   onChange={e => setEngineSettings({ ...engineSettings, xfsCrcEnforcement: e.target.checked })}
-                  className="rounded bg-[#050811] border-slate-700 text-purple-600 focus:ring-purple-500"
+                  className="rounded bg-[#050811] border-slate-700 text-cyan-600 focus:ring-cyan-500"
                 />
                 <span className="text-slate-300 text-xs">Strict XFS Superblock CRC Enforcement</span>
               </label>

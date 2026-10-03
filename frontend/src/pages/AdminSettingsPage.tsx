@@ -241,7 +241,7 @@ export default function AdminSettingsPage() {
         {/* Section 4: Engine Allocation */}
         <div className="p-5 rounded-2xl bg-[#080d19] border border-[#152138] shadow-[0_4px_25px_rgba(0,0,0,0.3)] space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#141f36]">
-            <Cpu className="w-4 h-4 text-purple-400" />
+            <Cpu className="w-4 h-4 text-cyan-400" />
             <h2 className="text-sm font-bold text-slate-200">Forensic Engine Hardware Allocation</h2>
           </div>
 
