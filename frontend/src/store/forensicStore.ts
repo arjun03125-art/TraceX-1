@@ -3,7 +3,8 @@ import type {
   Evidence,
   Artifact,
   AuditEvent,
-  TimelineEvent
+  TimelineEvent,
+  Investigator
 } from '../types/forensic';
 
 // Two Temporary Seed Cases:
@@ -314,3 +315,42 @@ export const INITIAL_AUDIT: AuditEvent[] = [
 ];
 
 export const INITIAL_TIMELINE: TimelineEvent[] = [];
+
+export const INITIAL_INVESTIGATORS: Investigator[] = [
+  {
+    investigator_id: 'inv-vance-01',
+    name: 'Det. H. Vance',
+    role: 'Lead Forensic Analyst',
+    organization: 'Cyber Incident Response Unit',
+    email: 'h.vance@ciru.gov',
+    operator_id: 'OP-8824',
+    status: 'ACTIVE',
+    notes: 'Primary investigator for XFS deleted recovery operations.',
+    created_at: '2026-10-01T08:00:00.000Z',
+    updated_at: '2026-10-03T16:00:00.000Z',
+  },
+  {
+    investigator_id: 'inv-sterling-02',
+    name: 'Agent M. Sterling',
+    role: 'Digital Forensics Specialist',
+    organization: 'National Cyber Security Center',
+    email: 'm.sterling@ncsc.gov',
+    operator_id: 'OP-4419',
+    status: 'ACTIVE',
+    notes: 'Lead examiner for Btrfs fragmented recovery operations.',
+    created_at: '2026-10-02T09:30:00.000Z',
+    updated_at: '2026-10-03T18:00:00.000Z',
+  },
+  {
+    investigator_id: 'inv-mercer-03',
+    name: 'Chief Admin Alex Mercer',
+    role: 'Administrator',
+    organization: 'TraceX Forensics Oversight',
+    email: 'admin@tracex.internal',
+    operator_id: 'ADM-001',
+    status: 'ACTIVE',
+    notes: 'System administrator with full engine, security, and audit clearance.',
+    created_at: '2026-09-15T00:00:00.000Z',
+    updated_at: '2026-10-01T12:00:00.000Z',
+  },
+];

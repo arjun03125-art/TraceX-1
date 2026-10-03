@@ -2,19 +2,20 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, HardDrive, FileX2,
-  FileCheck2, Clock, FileText, ScrollText, Settings,
-  Shield, AlertTriangle, Terminal, ArrowLeft, Search,
-  CheckCircle2, Cpu, Activity, Database, ChevronDown,
-  Layers, Lock, Users, Plus
+  FileCheck2, Clock, FileText, ScrollText,
+  Shield, Terminal, ArrowLeft, Search,
+  Lock, Plus, KeyRound, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 import CommandPalette from './CommandPalette';
 import { useApp } from '../store/AppContext';
+import { useAuth } from '../store/AuthContext';
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cases, evidence, reports, auditEvents, investigators } = useApp();
+  const { cases, evidence, reports } = useApp();
+  const { currentUser, currentRole, isAdmin, switchRole } = useAuth();
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [utcTime, setUtcTime] = useState('');
@@ -56,24 +57,16 @@ export default function Layout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const WORKSPACE_NAV = [
+  // Dedicated Investigator Workspace routes ONLY (No Admin items)
+  const INVESTIGATOR_NAV = [
     { path: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
     { path: '/cases', label: 'Cases', icon: FolderOpen, count: cases.length },
     { path: '/evidence', label: 'Evidence', icon: HardDrive, count: evidence.length },
-    { path: '/deleted', label: 'Deleted Files', icon: FileX2 },
-    { path: '/recovered', label: 'Recovered Files', icon: FileCheck2 },
-    { path: '/timeline', label: 'Chronology', icon: Clock },
+    { path: '/deleted-files', label: 'Deleted Files', icon: FileX2 },
+    { path: '/recovered-files', label: 'Recovered Files', icon: FileCheck2 },
+    { path: '/chronology', label: 'Chronology', icon: Clock },
     { path: '/reports', label: 'Reports', icon: FileText, count: reports.length },
-  ];
-
-  const ADMIN_NAV = [
-    { path: '/admin', label: 'Overview', icon: LayoutDashboard },
-    { path: '/admin/cases', label: 'Cases', icon: FolderOpen, count: cases.length },
-    { path: '/admin/investigators', label: 'Investigators', icon: Users, count: investigators.length },
-    { path: '/admin/evidence', label: 'Evidence', icon: HardDrive, count: evidence.length },
-    { path: '/admin/reports', label: 'Reports', icon: FileText, count: reports.length },
-    { path: '/admin/audit', label: 'Audit', icon: ScrollText, count: auditEvents.length },
-    { path: '/admin/settings', label: 'System Settings', icon: Settings },
+    { path: '/audit', label: 'Audit Log', icon: ScrollText },
   ];
 
   return (
@@ -99,12 +92,12 @@ export default function Layout() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-mono font-bold tracking-[0.25em] text-cyan-400 uppercase">TRACE X</span>
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-800/40 text-cyan-300">
-                    CORE
+                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 font-bold">
+                    WORK
                   </span>
                 </div>
-                <div className="text-[9px] text-slate-500 font-mono tracking-tight flex items-center gap-1">
-                  <span>FORENSIC RECOVERY</span>
+                <div className="text-[9px] text-slate-400 font-mono tracking-tight flex items-center gap-1">
+                  <span>INVESTIGATOR WORKSPACE</span>
                   <span className="text-slate-600">•</span>
                   <span className="text-slate-400">v0.1.0</span>
                 </div>
@@ -114,7 +107,7 @@ export default function Layout() {
         </div>
 
         {/* Write-Block & Security Ribbon */}
-        <div className="mx-3 mt-3 px-3 py-2 bg-gradient-to-r from-emerald-950/30 via-slate-900/60 to-emerald-950/20 border border-emerald-500/30 rounded-lg flex items-center justify-between shadow-[0_0_15px_rgba(16,185,129,0.08)]">
+        <div className="mx-3 mt-3 px-3 py-2 bg-gradient-to-r from-emerald-950/30 via-slate-900/60 to-emerald-950/20 border border-emerald-500/30 rounded-lg flex items-center justify-between shadow-[0_0_15px_rgba(160,185,129,0.08)]">
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
             <div>
@@ -143,139 +136,79 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Scrollable Nav Section */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-4 pt-3">
-          {/* Section 1: Forensic Workspace */}
-          <div>
-            <div className="px-2 pb-1.5">
-              <span className="text-[9px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
-                Forensic Workspace
-              </span>
-            </div>
-            <nav className="space-y-0.5">
-              {WORKSPACE_NAV.map(({ path, label, icon: Icon, count }) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === '/dashboard'}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer group',
-                      isActive
-                        ? 'bg-gradient-to-r from-cyan-950/60 to-blue-950/40 text-cyan-300 border-l-2 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.12)]'
-                        : 'text-slate-400 hover:bg-[#0d1424] hover:text-slate-200'
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon
-                          className={clsx(
-                            'w-3.5 h-3.5 flex-shrink-0 transition-colors',
-                            isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'
-                          )}
-                        />
-                        <span className="truncate">{label}</span>
-                      </div>
-
-                      {count !== undefined && count > 0 && (
-                        <span
-                          className={clsx(
-                            'text-[10px] font-mono px-1.5 py-0.2 rounded-full border',
-                            isActive
-                              ? 'bg-cyan-900/50 text-cyan-300 border-cyan-700/40'
-                              : 'bg-slate-800/80 text-slate-400 border-slate-700/40'
-                          )}
-                        >
-                          {count}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-
-          {/* Section 2: Administration */}
-          <div>
-            <div className="px-2 pb-1.5 flex items-center justify-between">
-              <span className="text-[9px] font-mono tracking-widest text-purple-400 uppercase font-semibold">
-                Administration
-              </span>
-              <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-purple-950/60 text-purple-300 border border-purple-800/40">
-                MGMT
-              </span>
-            </div>
-            <nav className="space-y-0.5">
-              {ADMIN_NAV.map(({ path, label, icon: Icon, count }) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === '/admin'}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer group',
-                      isActive
-                        ? 'bg-gradient-to-r from-purple-950/60 to-indigo-950/40 text-purple-300 border-l-2 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.12)]'
-                        : 'text-slate-400 hover:bg-[#0d1424] hover:text-slate-200'
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon
-                          className={clsx(
-                            'w-3.5 h-3.5 flex-shrink-0 transition-colors',
-                            isActive ? 'text-purple-400' : 'text-slate-500 group-hover:text-slate-300'
-                          )}
-                        />
-                        <span className="truncate">{label}</span>
-                      </div>
-
-                      {count !== undefined && count > 0 && (
-                        <span
-                          className={clsx(
-                            'text-[10px] font-mono px-1.5 py-0.2 rounded-full border',
-                            isActive
-                              ? 'bg-purple-900/50 text-purple-300 border-purple-700/40'
-                              : 'bg-slate-800/80 text-slate-400 border-slate-700/40'
-                          )}
-                        >
-                          {count}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-        </div>
-
-        {/* Engine Hardware Telemetry Card */}
-        <div className="mx-3 my-2 p-2.5 rounded-lg bg-[#090e1c] border border-[#152035] space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] font-mono">
-            <span className="text-slate-400 flex items-center gap-1.5">
-              <Cpu className="w-3 h-3 text-cyan-400" />
-              Engine Architecture
+        {/* Scrollable Nav Section — Investigator Routes ONLY */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1 pt-3">
+          <div className="px-2 pb-1.5">
+            <span className="text-[9px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
+              Forensic Modules
             </span>
-            <span className="text-emerald-400 font-semibold">ONLINE</span>
           </div>
+          <nav className="space-y-0.5">
+            {INVESTIGATOR_NAV.map(({ path, label, icon: Icon, count }) => (
+              <NavLink
+                key={path}
+                to={path}
+                end={path === '/dashboard'}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer group',
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-950/60 to-blue-950/40 text-cyan-300 border-l-2 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.12)] font-semibold'
+                      : 'text-slate-400 hover:bg-[#0d1424] hover:text-slate-200'
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        className={clsx(
+                          'w-3.5 h-3.5 flex-shrink-0 transition-colors',
+                          isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'
+                        )}
+                      />
+                      <span className="truncate">{label}</span>
+                    </div>
 
-          <div className="space-y-1 text-[9px] font-mono text-slate-500">
-            <div className="flex items-center justify-between">
-              <span>Filesystems</span>
-              <span className="text-slate-300">ext4 • XFS • Btrfs</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Carving Worker</span>
-              <span className="text-slate-300">Ready</span>
-            </div>
-          </div>
+                    {count !== undefined && count > 0 && (
+                      <span
+                        className={clsx(
+                          'text-[10px] font-mono px-1.5 py-0.2 rounded-full border',
+                          isActive
+                            ? 'bg-cyan-900/50 text-cyan-300 border-cyan-700/40'
+                            : 'bg-slate-800/80 text-slate-400 border-slate-700/40'
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
         </div>
+
+        {/* Administrator Portal Switcher (Visible if user is Admin or for seamless role transition) */}
+        {isAdmin && (
+          <div className="mx-3 mb-2 p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-purple-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                Admin Privileges
+              </span>
+              <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-purple-900/80 text-purple-200">
+                ACTIVE
+              </span>
+            </div>
+            <button
+              onClick={() => navigate('/admin')}
+              className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+            >
+              Open Admin Portal →
+            </button>
+          </div>
+        )}
 
         {/* Return to Cinematic Landing */}
         <div className="px-3 pb-2 pt-1 border-t border-[#151f33]">
@@ -291,13 +224,34 @@ export default function Layout() {
           </NavLink>
         </div>
 
-        {/* Footer info */}
-        <div className="px-4 py-2.5 bg-[#060913] border-t border-[#151f33] text-[9px] text-slate-500 font-mono flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Terminal className="w-3 h-3 text-cyan-400" />
-            <span>Rust 1.82+ | Tauri 2</span>
+        {/* Active Identity & Role Switcher Footer */}
+        <div className="px-3 py-2.5 bg-[#060913] border-t border-[#151f33] space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-full bg-cyan-950 border border-cyan-700/50 flex items-center justify-center flex-shrink-0 text-cyan-300 text-[10px] font-bold">
+                {currentUser.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-mono text-slate-200 font-semibold truncate">
+                  {currentUser.name}
+                </div>
+                <div className="text-[9px] font-mono text-slate-400 truncate">
+                  {currentUser.role} ({currentUser.badge})
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={switchRole}
+              title="Switch user role for testing"
+              className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#10182c] border border-[#213054] text-cyan-400 hover:bg-[#152342] transition-colors"
+            >
+              Switch Role
+            </button>
           </div>
-          <span className="text-slate-600">IMMUTABLE LOG</span>
+          <div className="text-[8px] font-mono text-slate-500 flex items-center justify-between pt-1 border-t border-[#121829]">
+            <span>Rust Core: 1.82+</span>
+            <span className="text-emerald-400">IMMUTABLE LOG</span>
+          </div>
         </div>
       </aside>
 
@@ -327,19 +281,13 @@ export default function Layout() {
               <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0e1629] border border-[#1d2a45]">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">NO ACTIVE CASE</span>
-                <button
-                  onClick={() => navigate('/admin/cases')}
-                  className="text-[10px] font-mono text-cyan-400 hover:underline flex items-center gap-1 ml-1"
-                >
-                  <Plus className="w-3 h-3" /> Create Case
-                </button>
               </div>
             )}
 
             <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-slate-500">
               <span className="text-slate-700">/</span>
               <span className="text-slate-400 capitalize">
-                {location.pathname.replace('/', '').replace('admin/', 'admin • ') || 'Dashboard'}
+                {location.pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
               </span>
             </div>
           </div>
@@ -366,14 +314,30 @@ export default function Layout() {
               <span className="tabular-nums font-mono text-slate-300">{utcTime || 'UTC'}</span>
             </div>
 
-            {/* Quick Export report trigger */}
+            {/* Role indicator / switch button */}
             <button
-              onClick={() => navigate('/admin/reports')}
-              className="px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+              onClick={switchRole}
+              title="Click to toggle between Investigator and Administrator role"
+              className={clsx(
+                'px-2.5 py-1 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-all',
+                isAdmin
+                  ? 'bg-purple-950/60 border-purple-500/50 text-purple-300'
+                  : 'bg-cyan-950/60 border-cyan-500/40 text-cyan-300'
+              )}
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Reports</span>
+              <KeyRound className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Role: {currentRole}</span>
             </button>
+
+            {/* Administrator Portal direct jump if Admin */}
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold transition-all shadow-[0_0_12px_rgba(168,85,247,0.3)] flex items-center gap-1"
+              >
+                Admin Portal
+              </button>
+            )}
           </div>
         </header>
 

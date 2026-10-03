@@ -17,7 +17,8 @@ import {
   INITIAL_CASES,
   INITIAL_EVIDENCE,
   INITIAL_ARTIFACTS,
-  INITIAL_AUDIT
+  INITIAL_AUDIT,
+  INITIAL_INVESTIGATORS
 } from './forensicStore';
 
 // ─── Storage Keys ───────────────────────────────────────────────────────────
@@ -258,7 +259,12 @@ export const DataService = {
   // ─── Investigators ─────────────────────────────────────────────────────
 
   getInvestigators(): Investigator[] {
-    return getAll<Investigator>(KEYS.investigators);
+    const stored = getAll<Investigator>(KEYS.investigators);
+    if (!stored || stored.length === 0) {
+      setAll(KEYS.investigators, INITIAL_INVESTIGATORS);
+      return INITIAL_INVESTIGATORS;
+    }
+    return stored;
   },
 
   getInvestigator(id: string): Investigator | undefined {

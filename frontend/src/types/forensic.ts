@@ -53,6 +53,20 @@ export interface Case {
   recovery_state?: 'RETRIEVED' | 'PARTIAL_70' | 'PENDING' | string;
 }
 
+// ─── Authentication & RBAC ─────────────────────────────────────────────────
+
+export type UserRole = 'INVESTIGATOR' | 'ADMINISTRATOR';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  role: UserRole;
+  title: string;
+  organization: string;
+  badge: string;
+  email: string;
+}
+
 // ─── Investigator ───────────────────────────────────────────────────────────
 
 export type InvestigatorStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
