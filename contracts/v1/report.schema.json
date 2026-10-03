@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Report Schema v1",
+  "type": "object",
+  "required": [
+    "report_id",
+    "case_id",
+    "report_number",
+    "format",
+    "status"
+  ],
+  "properties": {
+    "report_id": { "type": "string", "format": "uuid" },
+    "case_id": { "type": "string", "format": "uuid" },
+    "report_number": { "type": "string" },
+    "format": { "type": "string", "enum": ["json", "csv", "pdf"] },
+    "file_path": { "type": ["string", "null"] },
+    "status": { "type": "string", "enum": ["generating", "completed", "failed"] },
+    "generated_at": { "type": ["string", "null"], "format": "date-time" },
+    "generated_by": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

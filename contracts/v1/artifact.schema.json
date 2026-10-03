@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Artifact Schema v1",
+  "type": "object",
+  "required": [
+    "artifact_id",
+    "case_id",
+    "evidence_id",
+    "artifact_type",
+    "name",
+    "recovery_method",
+    "recovery_status",
+    "provenance"
+  ],
+  "properties": {
+    "artifact_id": { "type": "string", "format": "uuid" },
+    "case_id": { "type": "string", "format": "uuid" },
+    "evidence_id": { "type": "string", "format": "uuid" },
+    "artifact_type": {
+      "type": "string",
+      "enum": [
+        "recovered_file",
+        "deleted_file",
+        "metadata",
+        "carved_file",
+        "fragment",
+        "directory",
+        "other"
+      ]
+    },
+    "name": { "type": ["string", "null"] },
+    "path": { "type": ["string", "null"] },
+    "filesystem": { "type": ["string", "null"] },
+    "source": {
+      "type": "object",
+      "required": ["engine"],
+      "properties": {
+        "engine": { "type": "string" },
+        "inode": { "type": ["integer", "null"] },
+        "offset": { "type": ["integer", "null"] }
+      }
+    },
+    "size": { "type": ["integer", "null"], "minimum": 0 },
+    "timestamps": {
+      "type": "object",
+      "properties": {
+        "created": { "type": ["string", "null"], "format": "date-time" },
+        "modified": { "type": ["string", "null"], "format": "date-time" },
+        "accessed": { "type": ["string", "null"], "format": "date-time" },
+        "changed": { "type": ["string", "null"], "format": "date-time" },
+        "deleted": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9-]+$": { "type": "string" }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "required": ["method", "status"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["filesystem", "carving", "hybrid", "unknown"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "complete", "partial", "failed", "validated"]
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "file_signature": { "type": ["string", "null"] },
+        "integrity": { "type": "string", "enum": ["valid", "invalid", "unknown", "not_checked"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_image", "source_offset"],
+      "properties": {
+        "source_image": { "type": "string" },
+        "source_offset": { "type": "integer" }
+      }
+    }
+  }
+}
