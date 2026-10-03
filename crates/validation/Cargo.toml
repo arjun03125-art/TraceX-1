@@ -1,0 +1,22 @@
+[package]
+name = "validation"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+sha2.workspace = true
+blake3.workspace = true
+hex.workspace = true
+evidence = { path = "../evidence" }
+metadata = { path = "../metadata" }
+hashing = { path = "../hashing" }
+
+[dev-dependencies]
+tempfile.workspace = true

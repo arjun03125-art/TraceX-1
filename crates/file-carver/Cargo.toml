@@ -1,0 +1,21 @@
+[package]
+name = "file-carver"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+infer.workspace = true
+evidence = { path = "../evidence" }
+metadata = { path = "../metadata" }
+
+[dev-dependencies]
+tempfile.workspace = true
+test-fixtures = { path = "../test-fixtures" }
+proptest.workspace = true

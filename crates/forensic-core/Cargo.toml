@@ -1,0 +1,42 @@
+[package]
+name = "forensic-core"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "forensic-recovery"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+csv.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap.workspace = true
+tokio.workspace = true
+indicatif.workspace = true
+rusqlite.workspace = true
+
+# Internal crates
+evidence = { path = "../evidence" }
+filesystem = { path = "../filesystem" }
+xfs-parser = { path = "../xfs-parser" }
+btrfs-parser = { path = "../btrfs-parser" }
+block-scanner = { path = "../block-scanner" }
+file-carver = { path = "../file-carver" }
+metadata = { path = "../metadata" }
+hashing = { path = "../hashing" }
+validation = { path = "../validation" }
+timeline = { path = "../timeline" }
+reporting = { path = "../reporting" }
+database = { path = "../database" }
+audit = { path = "../audit" }
+
+[dev-dependencies]
+tempfile.workspace = true
+test-fixtures = { path = "../test-fixtures" }

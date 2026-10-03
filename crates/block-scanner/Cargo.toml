@@ -1,0 +1,21 @@
+[package]
+name = "block-scanner"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+rayon.workspace = true
+evidence = { path = "../evidence" }
+file-carver = { path = "../file-carver" }
+metadata = { path = "../metadata" }
+
+[dev-dependencies]
+tempfile.workspace = true
+test-fixtures = { path = "../test-fixtures" }

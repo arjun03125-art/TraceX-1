@@ -1,0 +1,566 @@
+/**
+ * DataService — localStorage-backed persistence layer for TRACE X.
+ * 
+ * Single source of truth for all application data.
+ * Designed to be replaceable with Tauri IPC / SQLite API in the future.
+ */
+
+import type {
+  Case, Evidence, Investigator, Report, AuditEvent, AuditAction,
+  AppSettings, DashboardLayout, DashboardWidget,
+  CreateCaseRequest, UpdateCaseRequest,
+  CreateInvestigatorRequest, UpdateInvestigatorRequest,
+  CreateEvidenceRequest, UpdateEvidenceRequest,
+  CreateReportRequest, UpdateReportRequest,
+} from '../types/forensic';
+
+// ─── Storage Keys ───────────────────────────────────────────────────────────
+
+const KEYS = {
+  cases: 'tracex_cases',
+  investigators: 'tracex_investigators',
+  evidence: 'tracex_evidence',
+  reports: 'tracex_reports',
+  audit: 'tracex_audit',
+  settings: 'tracex_settings',
+  dashboardLayout: 'tracex_dashboard_layout',
+  auditCounter: 'tracex_audit_counter',
+} as const;
+
+// ─── ID Generation ──────────────────────────────────────────────────────────
+
+function generateId(prefix: string): string {
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `${prefix}-${ts}-${rand}`;
+}
+
+function nowISO(): string {
+  return new Date().toISOString();
+}
+
+// ─── Default Settings ───────────────────────────────────────────────────────
+
+const DEFAULT_SETTINGS: AppSettings = {
+  general: {
+    applicationName: 'Trace X',
+    defaultInvestigator: '',
+    defaultOrganization: '',
+  },
+  engine: {
+    workerThreads: 8,
+    chunkSize: '4MB',
+    exportPath: '/forensic/recovered',
+  },
+  security: {
+    readOnlyEnforced: true,
+    execBitNeutralization: true,
+  },
+  evidence: {
+    defaultHashAlgorithm: 'SHA-256',
+    autoVerifyOnAdd: false,
+  },
+  audit: {
+    enabled: true,
+    retentionDays: 365,
+  },
+  appearance: {
+    theme: 'dark',
+    compactMode: false,
+  },
+};
+
+const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
+  widgets: [
+    { id: 'case_summary', label: 'Case Summary', visible: true, order: 0 },
+    { id: 'evidence_summary', label: 'Evidence Summary', visible: true, order: 1 },
+    { id: 'recent_activity', label: 'Recent Activity', visible: true, order: 2 },
+    { id: 'reports', label: 'Reports', visible: true, order: 3 },
+    { id: 'audit', label: 'Audit', visible: true, order: 4 },
+    { id: 'system_status', label: 'System Status', visible: true, order: 5 },
+    { id: 'timeline', label: 'Timeline', visible: false, order: 6 },
+  ],
+};
+
+// ─── Generic CRUD Helpers ───────────────────────────────────────────────────
+
+function getAll<T>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setAll<T>(key: string, items: T[]): void {
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+function getOne<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setOne<T>(key: string, item: T): void {
+  localStorage.setItem(key, JSON.stringify(item));
+}
+
+// ─── Audit Event Logging ────────────────────────────────────────────────────
+
+function getNextAuditId(): number {
+  const current = parseInt(localStorage.getItem(KEYS.auditCounter) || '0', 10);
+  const next = current + 1;
+  localStorage.setItem(KEYS.auditCounter, next.toString());
+  return next;
+}
+
+function logAuditEvent(
+  action: AuditAction,
+  details: Record<string, unknown>,
+  refs?: { case_id?: string; evidence_id?: string; artifact_id?: string }
+): AuditEvent {
+  const event: AuditEvent = {
+    id: getNextAuditId(),
+    event_id: generateId('aud'),
+    event_time: nowISO(),
+    actor: 'User',
+    action,
+    case_id: refs?.case_id || null,
+    evidence_id: refs?.evidence_id || null,
+    artifact_id: refs?.artifact_id || null,
+    tool_version: 'trace-x 0.1.0',
+    details: JSON.stringify(details),
+  };
+
+  const events = getAll<AuditEvent>(KEYS.audit);
+  events.push(event);
+  setAll(KEYS.audit, events);
+  return event;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DataService = {
+  // ─── Cases ──────────────────────────────────────────────────────────────
+
+  getCases(): Case[] {
+    return getAll<Case>(KEYS.cases);
+  },
+
+  getCase(id: string): Case | undefined {
+    return this.getCases().find(c => c.case_id === id);
+  },
+
+  createCase(req: CreateCaseRequest): Case {
+    const now = nowISO();
+    const newCase: Case = {
+      case_id: generateId('case'),
+      case_number: req.case_number,
+      case_title: req.case_title,
+      investigator: req.investigator,
+      organization: req.organization || null,
+      description: req.description || null,
+      status: 'ACTIVE',
+      priority: req.priority || 'MEDIUM',
+      notes: req.notes || null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const cases = this.getCases();
+    cases.push(newCase);
+    setAll(KEYS.cases, cases);
+
+    logAuditEvent('CASE_CREATED', {
+      case_title: newCase.case_title,
+      case_number: newCase.case_number,
+    }, { case_id: newCase.case_id });
+
+    return newCase;
+  },
+
+  updateCase(id: string, req: UpdateCaseRequest): Case | null {
+    const cases = this.getCases();
+    const idx = cases.findIndex(c => c.case_id === id);
+    if (idx === -1) return null;
+
+    const updated = {
+      ...cases[idx],
+      ...req,
+      organization: req.organization !== undefined ? (req.organization || null) : cases[idx].organization,
+      description: req.description !== undefined ? (req.description || null) : cases[idx].description,
+      notes: req.notes !== undefined ? (req.notes || null) : cases[idx].notes,
+      updated_at: nowISO(),
+    };
+
+    cases[idx] = updated;
+    setAll(KEYS.cases, cases);
+
+    logAuditEvent('CASE_UPDATED', {
+      case_id: id,
+      changes: Object.keys(req),
+    }, { case_id: id });
+
+    return updated;
+  },
+
+  deleteCase(id: string): boolean {
+    const cases = this.getCases();
+    const target = cases.find(c => c.case_id === id);
+    if (!target) return false;
+
+    setAll(KEYS.cases, cases.filter(c => c.case_id !== id));
+
+    logAuditEvent('CASE_DELETED', {
+      case_title: target.case_title,
+      case_number: target.case_number,
+    }, { case_id: id });
+
+    return true;
+  },
+
+  archiveCase(id: string): Case | null {
+    const result = this.updateCase(id, { status: 'ARCHIVED' });
+    if (result) {
+      logAuditEvent('CASE_ARCHIVED', { case_id: id }, { case_id: id });
+    }
+    return result;
+  },
+
+  // ─── Investigators ─────────────────────────────────────────────────────
+
+  getInvestigators(): Investigator[] {
+    return getAll<Investigator>(KEYS.investigators);
+  },
+
+  getInvestigator(id: string): Investigator | undefined {
+    return this.getInvestigators().find(i => i.investigator_id === id);
+  },
+
+  createInvestigator(req: CreateInvestigatorRequest): Investigator {
+    const now = nowISO();
+    const inv: Investigator = {
+      investigator_id: generateId('inv'),
+      name: req.name,
+      role: req.role,
+      organization: req.organization || null,
+      email: req.email || null,
+      operator_id: req.operator_id || null,
+      status: 'ACTIVE',
+      notes: req.notes || null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const list = this.getInvestigators();
+    list.push(inv);
+    setAll(KEYS.investigators, list);
+
+    logAuditEvent('INVESTIGATOR_CREATED', {
+      name: inv.name,
+      role: inv.role,
+    });
+
+    return inv;
+  },
+
+  updateInvestigator(id: string, req: UpdateInvestigatorRequest): Investigator | null {
+    const list = this.getInvestigators();
+    const idx = list.findIndex(i => i.investigator_id === id);
+    if (idx === -1) return null;
+
+    const updated = {
+      ...list[idx],
+      ...req,
+      organization: req.organization !== undefined ? (req.organization || null) : list[idx].organization,
+      email: req.email !== undefined ? (req.email || null) : list[idx].email,
+      operator_id: req.operator_id !== undefined ? (req.operator_id || null) : list[idx].operator_id,
+      notes: req.notes !== undefined ? (req.notes || null) : list[idx].notes,
+      updated_at: nowISO(),
+    };
+
+    list[idx] = updated;
+    setAll(KEYS.investigators, list);
+
+    logAuditEvent('INVESTIGATOR_UPDATED', {
+      investigator_id: id,
+      changes: Object.keys(req),
+    });
+
+    return updated;
+  },
+
+  deleteInvestigator(id: string): boolean {
+    const list = this.getInvestigators();
+    const target = list.find(i => i.investigator_id === id);
+    if (!target) return false;
+
+    setAll(KEYS.investigators, list.filter(i => i.investigator_id !== id));
+
+    logAuditEvent('INVESTIGATOR_DELETED', {
+      name: target.name,
+    });
+
+    return true;
+  },
+
+  // ─── Evidence ──────────────────────────────────────────────────────────
+
+  getEvidence(): Evidence[] {
+    return getAll<Evidence>(KEYS.evidence);
+  },
+
+  getEvidenceItem(id: string): Evidence | undefined {
+    return this.getEvidence().find(e => e.evidence_id === id);
+  },
+
+  getEvidenceByCase(caseId: string): Evidence[] {
+    return this.getEvidence().filter(e => e.case_id === caseId);
+  },
+
+  createEvidence(req: CreateEvidenceRequest): Evidence {
+    const now = nowISO();
+    const ev: Evidence = {
+      evidence_id: generateId('ev'),
+      case_id: req.case_id,
+      name: req.name,
+      source_path: req.source_path || '',
+      source_type: req.source_type || 'RAW_IMAGE',
+      size_bytes: null,
+      filesystem_type: null,
+      filesystem_uuid: null,
+      volume_label: null,
+      acquisition_hash: null,
+      hash_algorithm: null,
+      added_at: now,
+      added_by: null,
+      description: req.description || null,
+      analysis_status: 'PENDING',
+      format: req.format || 'RAW',
+      status: req.status || 'READY',
+      detected_fs: req.detected_fs || null,
+      hash_sha256: req.hash_sha256 || null,
+      read_only_verified: false,
+      notes: req.notes || null,
+    };
+
+    const list = this.getEvidence();
+    list.push(ev);
+    setAll(KEYS.evidence, list);
+
+    logAuditEvent('EVIDENCE_ADDED', {
+      name: ev.name,
+      source_type: ev.source_type,
+    }, { case_id: req.case_id, evidence_id: ev.evidence_id });
+
+    return ev;
+  },
+
+  updateEvidence(id: string, req: UpdateEvidenceRequest): Evidence | null {
+    const list = this.getEvidence();
+    const idx = list.findIndex(e => e.evidence_id === id);
+    if (idx === -1) return null;
+
+    const updated = {
+      ...list[idx],
+      ...req,
+      description: req.description !== undefined ? (req.description || null) : list[idx].description,
+      notes: req.notes !== undefined ? (req.notes || null) : list[idx].notes,
+    };
+
+    list[idx] = updated;
+    setAll(KEYS.evidence, list);
+
+    logAuditEvent('EVIDENCE_UPDATED', {
+      evidence_id: id,
+      changes: Object.keys(req),
+    }, { evidence_id: id, case_id: updated.case_id });
+
+    return updated;
+  },
+
+  deleteEvidence(id: string): boolean {
+    const list = this.getEvidence();
+    const target = list.find(e => e.evidence_id === id);
+    if (!target) return false;
+
+    setAll(KEYS.evidence, list.filter(e => e.evidence_id !== id));
+
+    logAuditEvent('EVIDENCE_DELETED', {
+      name: target.name,
+    }, { evidence_id: id, case_id: target.case_id });
+
+    return true;
+  },
+
+  // ─── Reports ──────────────────────────────────────────────────────────
+
+  getReports(): Report[] {
+    return getAll<Report>(KEYS.reports);
+  },
+
+  getReport(id: string): Report | undefined {
+    return this.getReports().find(r => r.report_id === id);
+  },
+
+  getReportsByCase(caseId: string): Report[] {
+    return this.getReports().filter(r => r.case_id === caseId);
+  },
+
+  createReport(req: CreateReportRequest): Report {
+    const now = nowISO();
+    const report: Report = {
+      report_id: generateId('rpt'),
+      case_id: req.case_id,
+      title: req.title,
+      description: req.description || null,
+      summary: req.summary || null,
+      report_type: req.report_type || 'COMPREHENSIVE',
+      author: req.author || 'Lead Examiner',
+      classification: req.classification || 'LAW_ENFORCEMENT_SENSITIVE',
+      format: req.format || 'HTML',
+      status: 'DRAFT',
+      created_at: now,
+      updated_at: now,
+      created_by: null,
+      notes: req.notes || null,
+    };
+
+    const list = this.getReports();
+    list.push(report);
+    setAll(KEYS.reports, list);
+
+    logAuditEvent('REPORT_CREATED', {
+      title: report.title,
+      format: report.format,
+    }, { case_id: req.case_id });
+
+    return report;
+  },
+
+  updateReport(id: string, req: UpdateReportRequest): Report | null {
+    const list = this.getReports();
+    const idx = list.findIndex(r => r.report_id === id);
+    if (idx === -1) return null;
+
+    const updated = {
+      ...list[idx],
+      ...req,
+      description: req.description !== undefined ? (req.description || null) : list[idx].description,
+      notes: req.notes !== undefined ? (req.notes || null) : list[idx].notes,
+      updated_at: nowISO(),
+    };
+
+    list[idx] = updated;
+    setAll(KEYS.reports, list);
+
+    logAuditEvent('REPORT_UPDATED', {
+      report_id: id,
+      changes: Object.keys(req),
+    });
+
+    return updated;
+  },
+
+  deleteReport(id: string): boolean {
+    const list = this.getReports();
+    const target = list.find(r => r.report_id === id);
+    if (!target) return false;
+
+    setAll(KEYS.reports, list.filter(r => r.report_id !== id));
+
+    logAuditEvent('REPORT_DELETED', {
+      title: target.title,
+    });
+
+    return true;
+  },
+
+  // ─── Audit Events ──────────────────────────────────────────────────────
+
+  getAuditEvents(): AuditEvent[] {
+    return getAll<AuditEvent>(KEYS.audit);
+  },
+
+  getAuditEventsByCase(caseId: string): AuditEvent[] {
+    return this.getAuditEvents().filter(e => e.case_id === caseId);
+  },
+
+  // ─── Settings ──────────────────────────────────────────────────────────
+
+  getSettings(): AppSettings {
+    const stored = getOne<AppSettings>(KEYS.settings);
+    return stored || { ...DEFAULT_SETTINGS };
+  },
+
+  updateSettings(settings: AppSettings): AppSettings {
+    setOne(KEYS.settings, settings);
+
+    logAuditEvent('SETTINGS_UPDATED', {
+      sections: Object.keys(settings),
+    });
+
+    return settings;
+  },
+
+  // ─── Dashboard Layout ─────────────────────────────────────────────────
+
+  getDashboardLayout(): DashboardLayout {
+    const stored = getOne<DashboardLayout>(KEYS.dashboardLayout);
+    return stored || { ...DEFAULT_DASHBOARD_LAYOUT };
+  },
+
+  updateDashboardLayout(layout: DashboardLayout): DashboardLayout {
+    setOne(KEYS.dashboardLayout, layout);
+
+    logAuditEvent('DASHBOARD_LAYOUT_UPDATED', {
+      visible_widgets: layout.widgets.filter(w => w.visible).map(w => w.id),
+    });
+
+    return layout;
+  },
+
+  resetDashboardLayout(): DashboardLayout {
+    const layout = { ...DEFAULT_DASHBOARD_LAYOUT };
+    setOne(KEYS.dashboardLayout, layout);
+    return layout;
+  },
+
+  // ─── Stats ─────────────────────────────────────────────────────────────
+
+  getStats() {
+    const cases = this.getCases();
+    const evidence = this.getEvidence();
+    const investigators = this.getInvestigators();
+    const reports = this.getReports();
+    const auditEvents = this.getAuditEvents();
+
+    return {
+      totalCases: cases.length,
+      activeCases: cases.filter(c => c.status === 'ACTIVE').length,
+      totalEvidence: evidence.length,
+      totalInvestigators: investigators.length,
+      activeInvestigators: investigators.filter(i => i.status === 'ACTIVE').length,
+      totalReports: reports.length,
+      totalAuditEvents: auditEvents.length,
+      recentCases: cases.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5),
+      recentEvidence: evidence.sort((a, b) => b.added_at.localeCompare(a.added_at)).slice(0, 5),
+      recentAudit: auditEvents.sort((a, b) => b.event_time.localeCompare(a.event_time)).slice(0, 10),
+    };
+  },
+
+  // ─── Clear All Data (for testing) ─────────────────────────────────────
+
+  clearAll(): void {
+    Object.values(KEYS).forEach(key => localStorage.removeItem(key));
+  },
+};
+
+export default DataService;

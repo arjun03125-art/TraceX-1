@@ -1,0 +1,102 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/forensic-core",
+    "crates/evidence",
+    "crates/filesystem",
+    "crates/xfs-parser",
+    "crates/btrfs-parser",
+    "crates/block-scanner",
+    "crates/file-carver",
+    "crates/metadata",
+    "crates/hashing",
+    "crates/validation",
+    "crates/timeline",
+    "crates/reporting",
+    "crates/database",
+    "crates/audit",
+    "crates/test-fixtures",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["ForensicRecovery Contributors"]
+license = "MIT"
+repository = "https://github.com/forensic-recovery/forensic-recovery"
+
+[workspace.dependencies]
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_cbor = "0.11"
+csv = "1.3"
+
+# Hashing / Cryptography
+sha2 = "0.10"
+blake3 = "1.5"
+md-5 = "0.10"
+sha1 = "0.10"
+hex = "0.4"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# UUID
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Binary parsing
+byteorder = "1.5"
+nom = "7.1"
+zerocopy = { version = "0.7", features = ["derive"] }
+
+# File type detection
+infer = "0.16"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "color", "env"] }
+
+# Progress / reporting
+indicatif = "0.17"
+
+# Testing
+proptest = "1.5"
+tempfile = "3.12"
+
+# Rayon for parallel processing
+rayon = "1.10"
+
+# Memory-mapped files (read-only)
+memmap2 = "0.9"
+
+# Report generation
+pulldown-cmark = "0.11"
+printpdf = "0.7"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+debug = true
+overflow-checks = true
+
+[profile.test]
+debug = true
+overflow-checks = true

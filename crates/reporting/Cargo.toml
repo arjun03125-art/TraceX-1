@@ -1,0 +1,23 @@
+[package]
+name = "reporting"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+csv.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+pulldown-cmark.workspace = true
+printpdf.workspace = true
+database = { path = "../database" }
+metadata = { path = "../metadata" }
+timeline = { path = "../timeline" }
+audit = { path = "../audit" }
+
+[dev-dependencies]
+tempfile.workspace = true

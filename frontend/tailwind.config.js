@@ -1,0 +1,55 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        tx: {
+          void: '#06080f',
+          abyss: '#090c16',
+          obsidian: '#0c1019',
+          graphite: '#0f141f',
+          slate: '#141a28',
+          carbon: '#1a2133',
+          steel: '#222d42',
+          border: '#1c2536',
+          'border-subtle': '#151c2a',
+          'border-bright': '#263044',
+          accent: '#3b82f6',
+          'accent-bright': '#60a5fa',
+          'accent-dim': '#1e40af',
+        },
+        forensic: {
+          bg: '#06080f',
+          panel: '#0f141f',
+          border: '#1c2536',
+          accent: '#3b82f6',
+          'accent-hover': '#4b8df8',
+          confirmed: '#34d399',
+          partial: '#fbbf24',
+          carved: '#60a5fa',
+          unrecoverable: '#f43f5e',
+          unknown: '#64748b',
+          text: '#e8ecf4',
+          'text-muted': '#4a5568',
+          high: '#34d399',
+          medium: '#fbbf24',
+          low: '#f43f5e',
+        },
+      },
+      fontFamily: {
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      animation: {
+        'scan': 'scan-line 8s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
+        'text-shimmer': 'text-shimmer 8s linear infinite',
+      },
+    },
+  },
+  plugins: [],
+};
