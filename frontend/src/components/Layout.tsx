@@ -14,23 +14,11 @@ import { useAuth } from '../store/AuthContext';
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cases, evidence, reports } = useApp();
+  const { cases, evidence, reports, activeCaseId, activeCase, setActiveCaseId } = useApp();
   const { currentUser, currentRole, isAdmin, isAdminAuthenticated, switchRole } = useAuth();
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [utcTime, setUtcTime] = useState('');
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
-
-  // Keep selectedCaseId synced with available cases
-  useEffect(() => {
-    if (cases.length > 0 && (!selectedCaseId || !cases.some(c => c.case_id === selectedCaseId))) {
-      setSelectedCaseId(cases[0].case_id);
-    } else if (cases.length === 0) {
-      setSelectedCaseId('');
-    }
-  }, [cases, selectedCaseId]);
-
-  const activeCase = cases.find(c => c.case_id === selectedCaseId);
 
   // Real-time UTC investigation clock
   useEffect(() => {
@@ -272,8 +260,8 @@ export default function Layout() {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex-shrink-0">CASE:</span>
                 <select
-                  value={selectedCaseId}
-                  onChange={e => setSelectedCaseId(e.target.value)}
+                  value={activeCaseId || ''}
+                  onChange={e => setActiveCaseId(e.target.value)}
                   className="bg-transparent text-xs font-mono font-semibold text-cyan-300 focus:outline-none cursor-pointer truncate min-w-0 w-full"
                 >
                   {cases.map(c => (

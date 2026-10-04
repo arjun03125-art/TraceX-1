@@ -3,40 +3,51 @@ import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, Layers, Database, HardDrive, ShieldCheck, CheckCircle2,
   AlertTriangle, ArrowRight, Clock, FileCheck2, FileX2, Search,
-  Terminal, Sliders, Hash, Cpu, ExternalLink, Activity, Info
+  Terminal, Sliders, Hash, Cpu, ExternalLink, Activity, Info, Plus
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import AddEvidenceModal from '../components/AddEvidenceModal';
 import clsx from 'clsx';
 
 export default function AnalysisPage() {
   const navigate = useNavigate();
-  const { cases, evidence, artifacts } = useApp();
+  const { cases, evidence, artifacts, activeCase, activeCaseId, setActiveCaseId, logEvent } = useApp();
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('case-retrieved-100');
   const [selectedAg, setSelectedAg] = useState<number>(0);
   const [analyzing, setAnalyzing] = useState(false);
   const [scanComplete, setScanComplete] = useState(true);
+  const [isAddEvidenceOpen, setIsAddEvidenceOpen] = useState(false);
 
-  const activeCase = useMemo(() => {
-    return cases.find(c => c.case_id === selectedCaseId || c.case_number === selectedCaseId) || cases[0];
-  }, [cases, selectedCaseId]);
+  const currentCase = activeCase || cases[0];
 
-  const activeEvidence = useMemo(() => {
-    return evidence.find(e => e.case_id === activeCase?.case_id) || evidence[0];
-  }, [evidence, activeCase]);
+  const caseEvidence = useMemo(() => {
+    if (!currentCase) return [];
+    return evidence.filter(e => e.case_id === currentCase.case_id);
+  }, [evidence, currentCase]);
 
-  const isXfs = activeEvidence?.detected_fs === 'XFS' || activeEvidence?.filesystem_type === 'XFS' || activeCase?.case_number === 'CR-2026-RET-01';
+  const activeEvidence = caseEvidence[0] || null;
+
+  const isXfs = activeEvidence
+    ? (activeEvidence.filesystem_type === 'XFS' || activeEvidence.detected_fs === 'XFS' || !activeEvidence.filesystem_type?.includes('BTRFS'))
+    : true;
 
   const caseArtifacts = useMemo(() => {
-    return artifacts.filter(a => a.evidence_id === activeEvidence?.evidence_id);
+    if (!activeEvidence) return [];
+    return artifacts.filter(a => a.evidence_id === activeEvidence.evidence_id);
   }, [artifacts, activeEvidence]);
 
   const handleRunDeepScan = () => {
+    if (!activeEvidence) return;
     setAnalyzing(true);
     setTimeout(() => {
       setAnalyzing(false);
       setScanComplete(true);
-    }, 800);
+      logEvent('EVIDENCE_ANALYZED', `Extensive B+Tree and Inode extent scan completed for ${activeEvidence.name}. Located ${caseArtifacts.length} deleted inode records.`, {
+        case_id: currentCase?.case_id,
+        evidence_id: activeEvidence.evidence_id,
+        status: 'ANALYZED',
+      });
+    }, 700);
   };
 
   return (
@@ -61,35 +72,25 @@ export default function AnalysisPage() {
 
         {/* Case Switcher */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-[#0a101f] border border-[#1b2742] rounded-xl p-1 font-mono text-xs">
-            <button
-              onClick={() => setSelectedCaseId('case-retrieved-100')}
-              className={clsx(
-                'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-                selectedCaseId === 'case-retrieved-100'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              )}
+          <div className="flex items-center gap-2 bg-[#0a101f] border border-[#1b2742] rounded-xl px-3 py-1.5 font-mono text-xs">
+            <span className="text-[10px] text-slate-500 uppercase">Case:</span>
+            <select
+              value={currentCase?.case_id || ''}
+              onChange={e => setActiveCaseId(e.target.value)}
+              className="bg-transparent text-cyan-400 font-bold focus:outline-none cursor-pointer"
             >
-              CR-2026-RET-01 (XFS)
-            </button>
-            <button
-              onClick={() => setSelectedCaseId('case-partial-70')}
-              className={clsx(
-                'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-                selectedCaseId === 'case-partial-70'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              )}
-            >
-              CR-2026-REC-70 (Btrfs)
-            </button>
+              {cases.map(c => (
+                <option key={c.case_id} value={c.case_id} className="bg-[#0a101f] text-slate-200">
+                  {c.case_number} — {c.case_title.length > 25 ? c.case_title.substring(0, 25) + '...' : c.case_title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button
             onClick={handleRunDeepScan}
-            disabled={analyzing}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] disabled:opacity-50"
+            disabled={analyzing || !activeEvidence}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] disabled:opacity-40"
           >
             <Activity className={clsx('w-3.5 h-3.5', analyzing && 'animate-spin')} />
             <span>{analyzing ? 'Scanning...' : 'Re-Analyze Extents'}</span>
@@ -97,8 +98,27 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* ── Filesystem Superblock & Core Parameter Cards ──────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 font-mono">
+      {!activeEvidence ? (
+        <div className="p-12 rounded-2xl bg-[#080d19] border border-[#152138] text-center font-mono space-y-4">
+          <HardDrive className="w-12 h-12 text-slate-600 mx-auto" />
+          <div>
+            <h3 className="text-base font-bold text-slate-200">NO EVIDENCE ATTACHED TO THIS CASE</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto font-sans">
+              Forensic inode parsing requires an attached disk image. Add an XFS or Btrfs forensic image to {currentCase?.case_number} to begin low-level analysis.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddEvidenceOpen(true)}
+            className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold inline-flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Attach Forensic Image</span>
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* ── Filesystem Superblock & Core Parameter Cards ──────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 font-mono">
         <div className="p-3.5 rounded-2xl bg-[#080d19] border border-[#152138] shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
           <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">FILESYSTEM DETECTED</div>
           <div className="text-base font-bold text-purple-400 mt-1 flex items-center gap-1.5">
@@ -344,6 +364,14 @@ export default function AnalysisPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
+
+      <AddEvidenceModal
+        isOpen={isAddEvidenceOpen}
+        onClose={() => setIsAddEvidenceOpen(false)}
+        targetCaseId={currentCase?.case_id}
+      />
     </div>
   );
 }

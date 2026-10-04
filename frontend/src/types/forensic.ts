@@ -14,7 +14,10 @@ export type RecoveryStatus =
   | 'PARTIAL'
   | 'CARVED'
   | 'UNRECOVERABLE'
-  | 'UNKNOWN';
+  | 'UNKNOWN'
+  | 'INTACT'
+  | 'RECOVERED'
+  | string;
 
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
 
@@ -106,6 +109,7 @@ export interface Evidence {
   filesystem_uuid: string | null;
   volume_label: string | null;
   acquisition_hash: string | null;
+  acquisition_method?: string | null;
   hash_algorithm: string | null;
   added_at: string;
   added_by: string | null;
@@ -203,6 +207,7 @@ export interface AuditEvent {
   hash_reference?: string | null;
   tool_version: string | null;
   details: string | null;
+  user_id?: string | null;
 }
 
 export type AuditEntry = AuditEvent;
@@ -362,7 +367,7 @@ export interface HashResult {
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
-export type ValidationStatus = 'VALID' | 'PARTIALLY_VALID' | 'INVALID' | 'UNVERIFIED';
+export type ValidationStatus = 'VALID' | 'PARTIALLY_VALID' | 'INVALID' | 'UNVERIFIED' | 'PENDING' | 'PENDING_VALIDATION' | string;
 
 export interface ValidationReport {
   artifact_id: string;
@@ -400,7 +405,9 @@ export interface Artifact {
   object_id: number | null;
   parent_id: number | null;
   filename: string;
+  name?: string;
   path: string | null;
+  original_path?: string | null;
   file_type: string;
   size_bytes: number;
   allocated_size: number;
@@ -417,6 +424,8 @@ export interface Artifact {
   missing_bytes: number;
   fragment_count: number;
   sha256: string | null;
+  sha256_recovered?: string | null;
+  inode_number?: number | null;
   blake3: string | null;
   mtime: string | null;
   ctime: string | null;
@@ -505,6 +514,15 @@ export interface CreateEvidenceRequest {
   notes?: string;
   detected_fs?: string | null;
   hash_sha256?: string | null;
+  size_bytes?: number | null;
+  filesystem_type?: FilesystemType | null;
+  acquisition_method?: string;
+  acquisition_hash?: string | null;
+  hash_algorithm?: string | null;
+  added_by?: string | null;
+  read_only_verified?: boolean;
+  filesystem_uuid?: string | null;
+  volume_label?: string | null;
 }
 
 export interface UpdateEvidenceRequest extends Partial<CreateEvidenceRequest> {

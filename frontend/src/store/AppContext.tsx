@@ -20,6 +20,8 @@ import type {
 
 interface AppState {
   cases: Case[];
+  activeCaseId: string | null;
+  activeCase: Case | null;
   investigators: Investigator[];
   evidence: Evidence[];
   artifacts: Artifact[];
@@ -31,6 +33,9 @@ interface AppState {
 }
 
 interface AppActions {
+  // Active Case Selector
+  setActiveCaseId(caseId: string | null): void;
+
   // Cases
   createCase(req: CreateCaseRequest): Case;
   updateCase(id: string, req: UpdateCaseRequest): Case | null;
@@ -49,6 +54,7 @@ interface AppActions {
 
   // Artifacts
   createArtifact(artifact: Artifact): Artifact;
+  updateArtifact(id: string, updates: Partial<Artifact>): Artifact | null;
 
   // Reports
   createReport(req: CreateReportRequest & Partial<Report>): Report;
@@ -83,8 +89,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVersion(v => v + 1);
   }, []);
 
+  // Global Active Case ID state
+  const [activeCaseId, setActiveCaseIdState] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem('tracex_active_case_id');
+      if (saved) return saved;
+    } catch {}
+    const initialCases = DataService.getCases();
+    return initialCases.length > 0 ? initialCases[0].case_id : null;
+  });
+
+  const setActiveCaseId = useCallback((id: string | null) => {
+    setActiveCaseIdState(id);
+    try {
+      if (id) localStorage.setItem('tracex_active_case_id', id);
+      else localStorage.removeItem('tracex_active_case_id');
+    } catch {}
+  }, []);
+
   // Read state from DataService on every version change
-  const state = useMemo((): AppState => {
+  const data = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     version; // dependency tracking
     return {
@@ -100,10 +124,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [version]);
 
+  // Synchronize activeCase with available cases
+  const activeCase = useMemo(() => {
+    if (!activeCaseId) return data.cases[0] || null;
+    return (
+      data.cases.find(c => c.case_id === activeCaseId || c.case_number === activeCaseId) ||
+      data.cases[0] ||
+      null
+    );
+  }, [data.cases, activeCaseId]);
+
   // Actions that mutate and refresh
   const actions = useMemo((): AppActions => ({
+    setActiveCaseId,
     createCase(req) {
       const result = DataService.createCase(req);
+      setActiveCaseId(result.case_id);
       refresh();
       return result;
     },
@@ -114,6 +150,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     deleteCase(id) {
       const result = DataService.deleteCase(id);
+      if (activeCaseId === id) {
+        setActiveCaseId(null);
+      }
       refresh();
       return result;
     },
@@ -157,6 +196,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refresh();
       return result;
     },
+    updateArtifact(id, updates) {
+      const result = DataService.updateArtifact(id, updates);
+      refresh();
+      return result;
+    },
     createReport(req) {
       const result = DataService.createReport(req);
       refresh();
@@ -193,7 +237,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return result;
     },
     refreshAll: refresh,
-  }), [refresh]);
+  }), [refresh, activeCaseId, setActiveCaseId]);
+
+  const state = useMemo((): AppState => ({
+    ...data,
+    activeCaseId,
+    activeCase,
+  }), [data, activeCaseId, activeCase]);
 
   const contextValue = useMemo(() => ({
     ...state,

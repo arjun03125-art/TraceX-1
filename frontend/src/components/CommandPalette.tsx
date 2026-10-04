@@ -4,7 +4,7 @@ import {
   Search, HardDrive, FileX2, FileCheck2, Clock, ScrollText,
   FolderOpen, LayoutDashboard, Settings, FileText, Shield,
   Terminal, CheckCircle2, ArrowRight, CornerDownLeft, Sparkles,
-  Database, RefreshCw
+  Database, RefreshCw, Cpu
 } from 'lucide-react';
 
 interface CommandItem {
@@ -56,6 +56,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: HardDrive,
       badge: '32 GB E01',
       action: () => { navigate('/evidence'); onClose(); }
+    },
+    {
+      id: 'nav-analysis',
+      title: 'Inode & Extent Analysis',
+      category: 'Navigation',
+      description: 'Superblock block allocation, AG geometry & B+Tree extent maps',
+      icon: Cpu,
+      badge: 'XFS/Btrfs',
+      action: () => { navigate('/analysis'); onClose(); }
     },
     {
       id: 'nav-deleted',

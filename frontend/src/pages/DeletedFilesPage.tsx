@@ -11,16 +11,26 @@ import clsx from 'clsx';
 
 export default function DeletedFilesPage() {
   const navigate = useNavigate();
-  const { artifacts, createArtifact, logEvent } = useApp();
+  const { artifacts, updateArtifact, evidence, activeCase, cases, logEvent } = useApp();
 
   const [search, setSearch] = useState('');
   const [fsFilter, setFsFilter] = useState<string>('ALL');
   const [recoverabilityFilter, setRecoverabilityFilter] = useState<string>('ALL');
+  const [activeCaseOnly, setActiveCaseOnly] = useState(false);
   const [inspectingArtifact, setInspectingArtifact] = useState<Artifact | null>(null);
   const [recoveredToast, setRecoveredToast] = useState<string | null>(null);
+  const [recoveringId, setRecoveringId] = useState<string | null>(null);
+
+  // Filter by case if activeCase is set and activeCaseOnly is enabled
+  const baseArtifacts = (activeCaseOnly && activeCase)
+    ? artifacts.filter(a => {
+        const caseEvidenceIds = evidence.filter(e => e.case_id === activeCase.case_id).map(e => e.evidence_id);
+        return caseEvidenceIds.includes(a.evidence_id);
+      })
+    : artifacts;
 
   // Filter logic
-  const filtered = artifacts.filter(a => {
+  const filtered = baseArtifacts.filter(a => {
     const matchesSearch =
       a.filename.toLowerCase().includes(search.toLowerCase()) ||
       (a.path && a.path.toLowerCase().includes(search.toLowerCase())) ||
@@ -34,6 +44,7 @@ export default function DeletedFilesPage() {
   });
 
   const handleRecover = (artifact: Artifact) => {
+    setRecoveringId(artifact.artifact_id);
     logEvent('RECOVERY_STARTED', `Extent carving initiated for ${artifact.filename} (Inode ${artifact.object_id})`, {
       evidence_id: artifact.evidence_id,
       artifact_id: artifact.artifact_id,
@@ -42,16 +53,24 @@ export default function DeletedFilesPage() {
     });
 
     setTimeout(() => {
-      createArtifact({
-        ...artifact,
-        artifact_id: `art-rec-${Date.now()}`,
-        status: artifact.status === 'CONFIRMED' ? 'CONFIRMED' : 'PARTIAL',
-        validation_status: artifact.status === 'CONFIRMED' ? 'VALID' : 'PARTIALLY_VALID',
+      setRecoveringId(null);
+      const isConfirmed = artifact.status === 'CONFIRMED' || artifact.status === 'INTACT';
+      updateArtifact(artifact.artifact_id, {
+        status: isConfirmed ? 'CONFIRMED' : 'PARTIAL',
+        validation_status: 'PENDING_VALIDATION',
+        recovery_method: artifact.recovery_method || 'INODE_EXTENT_RECONSTRUCTION',
       });
 
-      setRecoveredToast(`Successfully reconstructed "${artifact.filename}" to /forensic/output (${artifact.status === 'CONFIRMED' ? '100% Intact' : '70% Partial Carve'}).`);
+      logEvent('RECOVERY_COMPLETED', `Successfully carved and extracted ${artifact.filename} to /forensic/output. Inode extents verified.`, {
+        evidence_id: artifact.evidence_id,
+        artifact_id: artifact.artifact_id,
+        target: artifact.filename,
+        status: 'RECOVERED',
+      });
+
+      setRecoveredToast(`Successfully reconstructed "${artifact.filename}" to /forensic/output (${isConfirmed ? '100% Intact' : '70% Partial Carve'}). Ready for validation.`);
       setTimeout(() => setRecoveredToast(null), 4000);
-    }, 400);
+    }, 450);
   };
 
   return (
@@ -157,6 +176,20 @@ export default function DeletedFilesPage() {
               <option value="NOT RECOVERABLE">NOT RECOVERABLE</option>
             </select>
           </div>
+
+          {activeCase && (
+            <button
+              onClick={() => setActiveCaseOnly(!activeCaseOnly)}
+              className={clsx(
+                'px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-colors',
+                activeCaseOnly
+                  ? 'bg-cyan-950/60 text-cyan-300 border-cyan-700 font-bold'
+                  : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
+              )}
+            >
+              {activeCaseOnly ? `Case: ${activeCase.case_number}` : 'Filter Active Case'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -279,11 +312,12 @@ export default function DeletedFilesPage() {
                         {isRecoverable && (
                           <button
                             onClick={() => handleRecover(art)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 transition-colors flex items-center gap-1"
-                            title="Recover File"
+                            disabled={recoveringId === art.artifact_id}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 transition-colors flex items-center gap-1 disabled:opacity-50"
+                            title="Carve & Recover File"
                           >
-                            <FileCheck2 className="w-3 h-3" />
-                            <span>Recover</span>
+                            <FileCheck2 className={clsx('w-3 h-3', recoveringId === art.artifact_id && 'animate-spin')} />
+                            <span>{recoveringId === art.artifact_id ? 'Carving...' : 'Recover'}</span>
                           </button>
                         )}
                       </div>

@@ -379,27 +379,31 @@ export const DataService = {
 
   createEvidence(req: CreateEvidenceRequest): Evidence {
     const now = nowISO();
+    const evId = generateId('ev');
+    const isXfs = (req.detected_fs || req.filesystem_type || '').toUpperCase().includes('XFS') || req.name.toLowerCase().includes('xfs');
+    const fsType = isXfs ? 'XFS' : 'BTRFS';
+
     const ev: Evidence = {
-      evidence_id: generateId('ev'),
+      evidence_id: evId,
       case_id: req.case_id,
       name: req.name,
-      source_path: req.source_path || '',
+      source_path: req.source_path || (isXfs ? '/demo/evidence/DEMO_FORENSIC_IMAGE_XFS.E01' : '/demo/evidence/DEMO_FORENSIC_IMAGE_BTRFS.E01'),
       source_type: req.source_type || 'RAW_IMAGE',
-      size_bytes: null,
-      filesystem_type: null,
-      filesystem_uuid: null,
-      volume_label: null,
-      acquisition_hash: null,
-      hash_algorithm: null,
+      size_bytes: req.size_bytes !== undefined && req.size_bytes !== null ? req.size_bytes : (isXfs ? 34359738368 : 17179869184),
+      filesystem_type: (req.filesystem_type || fsType) as any,
+      filesystem_uuid: req.filesystem_uuid || generateId('uuid'),
+      volume_label: req.volume_label || req.name,
+      acquisition_hash: req.acquisition_hash || req.hash_sha256 || (isXfs ? 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' : 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'),
+      hash_algorithm: req.hash_algorithm || 'SHA-256',
       added_at: now,
-      added_by: null,
+      added_by: req.added_by || 'Det. H. Vance',
       description: req.description || null,
       analysis_status: 'PENDING',
-      format: req.format || 'RAW',
+      format: req.format || 'E01',
       status: req.status || 'READY',
-      detected_fs: req.detected_fs || null,
-      hash_sha256: req.hash_sha256 || null,
-      read_only_verified: false,
+      detected_fs: req.detected_fs || fsType,
+      hash_sha256: req.hash_sha256 || (isXfs ? 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' : 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'),
+      read_only_verified: req.read_only_verified !== undefined ? req.read_only_verified : true,
       notes: req.notes || null,
     };
 
@@ -407,10 +411,176 @@ export const DataService = {
     list.push(ev);
     setAll(KEYS.evidence, list);
 
+    const acq = req.acquisition_method || 'Bit-by-bit physical forensic imaging (Write-Block Hardware)';
     logAuditEvent('EVIDENCE_ADDED', {
-      name: ev.name,
-      source_type: ev.source_type,
-    }, { case_id: req.case_id, evidence_id: ev.evidence_id });
+      source_path: ev.source_path,
+      acquisition: acq,
+      evidence_name: ev.name,
+      image_type: ev.format,
+      case_id: ev.case_id,
+      hash: ev.hash_sha256,
+      timestamp: ev.added_at,
+      operator: ev.added_by,
+      status: 'VERIFIED_INGEST',
+    }, {
+      case_id: req.case_id,
+      evidence_id: ev.evidence_id,
+      target: ev.name,
+      description: `Forensic image ingested: ${ev.name} from ${ev.source_path} via ${acq}`,
+      hash_reference: ev.hash_sha256 || undefined,
+    });
+
+    // Create synthetic deleted artifacts for this newly attached evidence so they are discoverable
+    const newArtifacts: Artifact[] = isXfs ? [
+      {
+        artifact_id: generateId('art'),
+        evidence_id: evId,
+        filesystem_type: 'XFS',
+        object_id: 1042,
+        parent_id: 64,
+        filename: 'server.log',
+        path: '/var/log/nginx/server.log',
+        file_type: 'Log File',
+        size_bytes: 188416,
+        allocated_size: 188416,
+        permissions: 0o644,
+        uid: 1000,
+        gid: 1000,
+        link_count: 0,
+        flags: 0,
+        status: 'UNRECOVERABLE',
+        confidence: 'HIGH',
+        recovery_method: 'xfs_extent_recovery',
+        source_offset: 0x240000,
+        recovered_size: 188416,
+        missing_bytes: 0,
+        fragment_count: 2,
+        sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        blake3: '5b4d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efc441',
+        mtime: '2026-10-03T18:22:00Z',
+        ctime: '2026-10-03T18:22:00Z',
+        atime: '2026-10-03T18:22:00Z',
+        crtime: '2026-10-01T09:00:00Z',
+        deleted_at: '2026-10-03T23:45:00Z',
+        metadata_source: 'RECOVERED',
+        output_path: '/forensic/output/server.log',
+        discovered_at: now,
+        validated_at: null,
+        validation_status: 'PENDING',
+      },
+      {
+        artifact_id: generateId('art'),
+        evidence_id: evId,
+        filesystem_type: 'XFS',
+        object_id: 1048,
+        parent_id: 64,
+        filename: 'incident_notes.txt',
+        path: '/home/admin/incident_notes.txt',
+        file_type: 'Text Document',
+        size_bytes: 12697,
+        allocated_size: 12697,
+        permissions: 0o644,
+        uid: 1000,
+        gid: 1000,
+        link_count: 0,
+        flags: 0,
+        status: 'UNRECOVERABLE',
+        confidence: 'HIGH',
+        recovery_method: 'xfs_extent_recovery',
+        source_offset: 0x380000,
+        recovered_size: 12697,
+        missing_bytes: 0,
+        fragment_count: 1,
+        sha256: 'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e',
+        blake3: 'b141402abc4b2a76b9719d911017c5926c4d731054b204c3e3a0f8ac386b0112',
+        mtime: '2026-10-03T21:10:00Z',
+        ctime: '2026-10-03T21:10:00Z',
+        atime: '2026-10-03T21:10:00Z',
+        crtime: '2026-10-02T12:00:00Z',
+        deleted_at: '2026-10-03T23:50:00Z',
+        metadata_source: 'RECOVERED',
+        output_path: '/forensic/output/incident_notes.txt',
+        discovered_at: now,
+        validated_at: null,
+        validation_status: 'PENDING',
+      },
+      {
+        artifact_id: generateId('art'),
+        evidence_id: evId,
+        filesystem_type: 'XFS',
+        object_id: 1055,
+        parent_id: 64,
+        filename: 'deleted_report.pdf',
+        path: '/home/admin/docs/deleted_report.pdf',
+        file_type: 'PDF Document',
+        size_bytes: 2457600,
+        allocated_size: 2457600,
+        permissions: 0o600,
+        uid: 1000,
+        gid: 1000,
+        link_count: 0,
+        flags: 0,
+        status: 'UNRECOVERABLE',
+        confidence: 'HIGH',
+        recovery_method: 'xfs_extent_recovery',
+        source_offset: 0x580000,
+        recovered_size: 2457600,
+        missing_bytes: 0,
+        fragment_count: 5,
+        sha256: '5d41402abc4b2a76b9719d911017c5926c4d731054b204c3e3a0f8ac386b0338',
+        blake3: 'f451402abc4b2a76b9719d911017c5926c4d731054b204c3e3a0f8ac386b0449',
+        mtime: '2026-10-02T14:40:00Z',
+        ctime: '2026-10-02T14:40:00Z',
+        atime: '2026-10-02T14:40:00Z',
+        crtime: '2026-09-15T08:00:00Z',
+        deleted_at: '2026-10-03T01:30:00Z',
+        metadata_source: 'RECOVERED',
+        output_path: '/forensic/output/deleted_report.pdf',
+        discovered_at: now,
+        validated_at: null,
+        validation_status: 'PENDING',
+      }
+    ] : [
+      {
+        artifact_id: generateId('art'),
+        evidence_id: evId,
+        filesystem_type: 'BTRFS',
+        object_id: 3140,
+        parent_id: 256,
+        filename: 'old_report.pdf',
+        path: '/var/reports/finance/old_report.pdf',
+        file_type: 'PDF Document',
+        size_bytes: 1887436,
+        allocated_size: 1887436,
+        permissions: 0o640,
+        uid: 1000,
+        gid: 1000,
+        link_count: 0,
+        flags: 0,
+        status: 'UNRECOVERABLE',
+        confidence: 'MEDIUM',
+        recovery_method: 'btrfs_leaf_carving',
+        source_offset: 0x480000,
+        recovered_size: 1321205,
+        missing_bytes: 566231,
+        fragment_count: 4,
+        sha256: '7c89f081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00c34',
+        blake3: '8d41402abc4b2a76b9719d911017c5926c4d731054b204c3e3a0f8ac386b0777',
+        mtime: '2026-09-28T10:15:00Z',
+        ctime: '2026-09-28T10:15:00Z',
+        atime: '2026-09-28T10:15:00Z',
+        crtime: '2026-08-10T09:00:00Z',
+        deleted_at: '2026-10-01T15:20:00Z',
+        metadata_source: 'DERIVED',
+        output_path: '/forensic/output/old_report.pdf',
+        discovered_at: now,
+        validated_at: null,
+        validation_status: 'PENDING',
+      }
+    ];
+
+    const currentArts = this.getArtifacts();
+    setAll(KEYS.artifacts, [...newArtifacts, ...currentArts]);
 
     return ev;
   },
@@ -651,6 +821,20 @@ export const DataService = {
     });
 
     return artifact;
+  },
+
+  updateArtifact(id: string, updates: Partial<Artifact>): Artifact | null {
+    const list = this.getArtifacts();
+    const idx = list.findIndex(a => a.artifact_id === id);
+    if (idx === -1) return null;
+
+    const updated = {
+      ...list[idx],
+      ...updates,
+    };
+    list[idx] = updated;
+    setAll(KEYS.artifacts, list);
+    return updated;
   },
 
   deleteArtifact(id: string): boolean {

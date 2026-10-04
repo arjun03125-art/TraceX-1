@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
+import AddEvidenceModal from '../components/AddEvidenceModal';
 import type { CasePriority, CaseStatus } from '../types/forensic';
 import {
   FolderOpen, ArrowLeft, Calendar, Shield, User, Building,
   FileText, HardDrive, Cpu, Clock, ScrollText, CheckCircle2,
-  AlertCircle, Plus, Edit3, Trash2, X, ExternalLink
+  AlertCircle, Plus, Edit3, Trash2, X, ExternalLink, ShieldCheck,
+  Check, Lock, Activity, Eye, Terminal, Copy
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -21,12 +23,24 @@ export default function CaseDetailPage() {
   const reportsRoute = isAdmin ? '/admin/reports' : '/reports';
   const auditRoute = isAdmin ? '/admin/audit' : '/audit';
 
-  const { cases, evidence, reports, auditEvents, updateCase, deleteCase } = useApp();
+  const {
+    cases, evidence, artifacts, reports, auditEvents,
+    updateCase, deleteCase, updateEvidence, setActiveCaseId, logEvent
+  } = useApp();
 
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAddEvidenceOpen, setIsAddEvidenceOpen] = useState(false);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const currentCase = cases.find(c => c.case_id === caseId || c.case_number === caseId);
+
+  // Sync with global active case
+  useEffect(() => {
+    if (currentCase) {
+      setActiveCaseId(currentCase.case_id);
+    }
+  }, [currentCase, setActiveCaseId]);
 
   // Edit form state
   const [formData, setFormData] = useState({
@@ -54,6 +68,16 @@ export default function CaseDetailPage() {
     if (!currentCase) return [];
     return auditEvents.filter(a => a.case_id === currentCase.case_id);
   }, [auditEvents, currentCase]);
+
+  const caseEvidenceIds = useMemo(() => new Set(caseEvidence.map(e => e.evidence_id)), [caseEvidence]);
+
+  const caseArtifactsList = useMemo(() => {
+    return artifacts.filter(a => caseEvidenceIds.has(a.evidence_id));
+  }, [artifacts, caseEvidenceIds]);
+
+  const recoveredArtifacts = useMemo(() => {
+    return caseArtifactsList.filter(a => a.status === 'CONFIRMED' || a.status === 'PARTIAL');
+  }, [caseArtifactsList]);
 
   if (!currentCase) {
     return (
@@ -174,7 +198,7 @@ export default function CaseDetailPage() {
             Edit Case
           </button>
           <button
-            onClick={() => navigate(evidenceRoute)}
+            onClick={() => setIsAddEvidenceOpen(true)}
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -331,12 +355,12 @@ export default function CaseDetailPage() {
         <div className="rounded-xl bg-[#080d19] border border-[#152138] p-6 shadow-[0_4px_25px_rgba(0,0,0,0.3)] font-mono">
           <div className="flex items-center justify-between pb-4 border-b border-[#141f36]">
             <div>
-              <h3 className="text-sm font-bold text-slate-200">Attached Evidence Images</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Disk images, logical mounts, and raw dumps linked to this case</p>
+              <h3 className="text-sm font-bold text-slate-200">Attached Evidence Images ({caseEvidence.length})</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Forensic disk images linked specifically to {currentCase.case_number}</p>
             </div>
             <button
-              onClick={() => navigate(evidenceRoute)}
-              className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+              onClick={() => setIsAddEvidenceOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
             >
               <Plus className="w-3.5 h-3.5" />
               ADD EVIDENCE
@@ -348,10 +372,10 @@ export default function CaseDetailPage() {
               <HardDrive className="w-10 h-10 text-slate-600 mx-auto mb-3" />
               <h4 className="text-sm font-bold text-slate-300">NO EVIDENCE SOURCES</h4>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                No evidence has been attached to this case. Add an evidence image to begin file carving.
+                No evidence has been attached to this case. Add an evidence image (XFS or Btrfs) to begin file carving.
               </p>
               <button
-                onClick={() => navigate(evidenceRoute)}
+                onClick={() => setIsAddEvidenceOpen(true)}
                 className="mt-4 px-4 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs transition-colors inline-flex items-center gap-2 border border-cyan-500/30"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -359,19 +383,54 @@ export default function CaseDetailPage() {
               </button>
             </div>
           ) : (
-            <div className="mt-4 divide-y divide-[#141f36]">
+            <div className="mt-4 space-y-3">
               {caseEvidence.map(e => (
-                <div key={e.evidence_id} className="py-3 flex items-center justify-between text-xs">
-                  <div>
-                    <div className="font-bold text-slate-200">{e.name}</div>
-                    <div className="text-[10px] text-slate-500">{e.source_path} • {e.format} • Hash: {e.hash_sha256 ? e.hash_sha256.substring(0, 16) + '...' : 'Pending analysis'}</div>
+                <div key={e.evidence_id} className="p-4 rounded-xl bg-[#0c1324] border border-[#182542] hover:border-cyan-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-100 text-sm">{e.name}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950/60 text-cyan-400 border border-cyan-800/40">
+                        {e.filesystem_type || 'XFS'}
+                      </span>
+                      <span className={clsx(
+                        'px-2 py-0.5 rounded text-[10px] font-semibold border',
+                        e.status === 'VERIFIED'
+                          ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40'
+                          : 'bg-amber-950/60 text-amber-400 border-amber-800/40'
+                      )}>
+                        {e.status}
+                      </span>
+                      {e.read_only_verified && (
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-slate-900 text-slate-300 border border-slate-700">
+                          READ-ONLY WRITE BLOCK
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span>Source: <span className="text-slate-300">{e.source_path}</span></span>
+                      <span>Format: <span className="text-slate-300">{e.format}</span></span>
+                      <span>Acquisition: <span className="text-slate-300">{e.acquisition_method || 'Forensic Imaging'}</span></span>
+                      <span>Size: <span className="text-slate-300">{e.size_bytes ? (e.size_bytes / (1024*1024*1024)).toFixed(1) + ' GB' : '100 MB'}</span></span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      SHA-256: <span className="text-cyan-400/90 select-all">{e.hash_sha256 || 'Pending verification'}</span>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => navigate(evidenceRoute)}
-                    className="text-xs text-cyan-400 hover:underline"
-                  >
-                    View Details
-                  </button>
+
+                  <div className="flex items-center gap-2 self-start md:self-center">
+                    <button
+                      onClick={() => navigate('/analysis')}
+                      className="px-3 py-1.5 rounded-lg bg-[#15223e] hover:bg-[#1c2e54] text-cyan-300 text-xs border border-cyan-500/20 transition-colors"
+                    >
+                      Analyze Inodes
+                    </button>
+                    <button
+                      onClick={() => navigate('/deleted-files')}
+                      className="px-3 py-1.5 rounded-lg bg-[#15223e] hover:bg-[#1c2e54] text-amber-300 text-xs border border-amber-500/20 transition-colors"
+                    >
+                      Deleted Files
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -381,46 +440,185 @@ export default function CaseDetailPage() {
 
       {/* TAB CONTENT: Analysis */}
       {activeTab === 'analysis' && (
-        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-12 text-center font-mono">
-          <Cpu className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <h4 className="text-sm font-bold text-slate-300">ANALYSIS PENDING</h4>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-            No analysis has been initiated for this case. Attach and mount an evidence image in the forensic workspace to trigger inode parsing and carving.
-          </p>
-          <button
-            onClick={() => navigate('/evidence')}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs transition-colors inline-flex items-center gap-2 border border-cyan-500/30"
-          >
-            Go to Evidence Workspace
-          </button>
+        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-6 font-mono space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[#141f36]">
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">Filesystem & Inode Analysis</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Structural inspection for {currentCase.case_number}</p>
+            </div>
+            <button
+              onClick={() => navigate('/analysis')}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              FULL ANALYSIS WORKSPACE
+            </button>
+          </div>
+
+          {caseEvidence.length === 0 ? (
+            <div className="py-12 text-center">
+              <Cpu className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-300">ANALYSIS PENDING</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                No evidence has been attached to this case yet. Add an evidence disk image to inspect superblock and AG geometry.
+              </p>
+              <button
+                onClick={() => setIsAddEvidenceOpen(true)}
+                className="mt-4 px-4 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs transition-colors inline-flex items-center gap-2 border border-cyan-500/30"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Evidence
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {caseEvidence.map(e => (
+                <div key={e.evidence_id} className="p-4 rounded-xl bg-[#0c1324] border border-[#17233d] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-200">{e.name}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950/60 text-cyan-400 border border-cyan-800/40">
+                        DETECTED FILESYSTEM: {e.filesystem_type || 'XFS'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Superblock Valid
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-2.5 rounded-lg bg-[#080d19] border border-[#131d33]">
+                      <div className="text-[10px] text-slate-500 uppercase">Block Size</div>
+                      <div className="font-bold text-slate-200 mt-0.5">4096 bytes</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#080d19] border border-[#131d33]">
+                      <div className="text-[10px] text-slate-500 uppercase">Allocation Groups</div>
+                      <div className="font-bold text-slate-200 mt-0.5">4 AGs</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#080d19] border border-[#131d33]">
+                      <div className="text-[10px] text-slate-500 uppercase">Discovered Inodes</div>
+                      <div className="font-bold text-amber-400 mt-0.5">{caseArtifactsList.length} Deleted Artifacts</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#080d19] border border-[#131d33]">
+                      <div className="text-[10px] text-slate-500 uppercase">Write Blocking</div>
+                      <div className="font-bold text-emerald-400 mt-0.5">ENFORCED (READ ONLY)</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB CONTENT: Recovery */}
       {activeTab === 'recovery' && (
-        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-12 text-center font-mono">
-          <CheckCircle2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <h4 className="text-sm font-bold text-slate-300">NO RECOVERED FILES</h4>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-            No files have been recovered yet for this case. Run the carving engine on analyzed evidence remnants to extract deleted data.
-          </p>
-          <button
-            onClick={() => navigate('/recovered')}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs transition-colors inline-flex items-center gap-2 border border-cyan-500/30"
-          >
-            Open Recovery Engine
-          </button>
+        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-6 font-mono space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[#141f36]">
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">Recovered Files & Metadata ({recoveredArtifacts.length})</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Carved files with reconstructed metadata for {currentCase.case_number}</p>
+            </div>
+            <button
+              onClick={() => navigate('/recovered')}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              VIEW IN RECOVERED WORKSPACE
+            </button>
+          </div>
+
+          {recoveredArtifacts.length === 0 ? (
+            <div className="py-12 text-center">
+              <CheckCircle2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-300">NO RECOVERED FILES YET</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                No files have been recovered yet for this case. Carve unlinked inodes from the Deleted Files tab.
+              </p>
+              <button
+                onClick={() => navigate('/deleted-files')}
+                className="mt-4 px-4 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs transition-colors inline-flex items-center gap-2 border border-cyan-500/30"
+              >
+                Scan Deleted Files
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#141f36]">
+              {recoveredArtifacts.map(art => (
+                <div key={art.artifact_id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-100">{art.name}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                        {art.status}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-cyan-400 border border-slate-700 font-mono">
+                        {art.validation_status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Original Path: {art.original_path} • Size: {(art.size_bytes / 1024).toFixed(1)} KB • Inode: {art.inode_number}
+                    </div>
+                    {art.sha256_recovered && (
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        SHA-256: {art.sha256_recovered}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => navigate('/recovered')}
+                    className="px-3 py-1 rounded bg-[#131d33] hover:bg-[#192745] text-cyan-300 text-xs border border-cyan-500/20"
+                  >
+                    Inspect Integrity
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB CONTENT: Timeline */}
       {activeTab === 'timeline' && (
-        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-12 text-center font-mono">
-          <Clock className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <h4 className="text-sm font-bold text-slate-300">NO TIMELINE EVENTS</h4>
-          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-            Chronological forensic events will populate automatically as metadata (MACB timestamps) is extracted from evidence inodes.
-          </p>
+        <div className="rounded-xl bg-[#080d19] border border-[#152138] p-6 font-mono space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-[#141f36]">
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">Forensic Case Timeline ({caseAuditEvents.length} Events)</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Chronology of ingestion, verification, carving, and reporting for {currentCase.case_number}</p>
+            </div>
+            <button
+              onClick={() => navigate('/chronology')}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              FULL CHRONOLOGY
+            </button>
+          </div>
+
+          {caseAuditEvents.length === 0 ? (
+            <div className="py-12 text-center">
+              <Clock className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-300">NO TIMELINE EVENTS</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                Chronological forensic events will populate automatically as actions are taken on this case.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-[#141f36]">
+              {caseAuditEvents.map((evt, idx) => (
+                <div key={evt.event_id || idx} className="relative flex items-start gap-4 pl-8 text-xs">
+                  <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-cyan-500 ring-4 ring-[#080d19]" />
+                  <div className="p-3.5 rounded-xl bg-[#0c1324] border border-[#17233d] flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-cyan-400">{evt.action}</span>
+                      <span className="text-[10px] text-slate-500">{new Date(evt.event_time).toLocaleString()}</span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-1">{evt.details}</p>
+                    <div className="text-[10px] text-slate-500 mt-1">Investigator: {evt.user_id}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -637,6 +835,14 @@ export default function CaseDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ADD EVIDENCE MODAL */}
+      <AddEvidenceModal
+        isOpen={isAddEvidenceOpen}
+        onClose={() => setIsAddEvidenceOpen(false)}
+        targetCaseId={currentCase.case_id}
+        onSuccess={() => setActiveTab('evidence')}
+      />
     </div>
   );
 }

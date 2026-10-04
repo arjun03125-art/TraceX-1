@@ -1,21 +1,34 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   HardDrive, Plus, Shield, CheckCircle2, RefreshCw, AlertTriangle,
   FileSearch, Key, Hash, Layers, Copy, Check, ArrowRight, ShieldCheck,
-  Lock, Activity, Database
+  Lock, Activity, Database, Cpu, Trash2
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import AddEvidenceModal from '../components/AddEvidenceModal';
 import clsx from 'clsx';
 
 export default function EvidencePage() {
-  const { evidence, logEvent } = useApp();
+  const navigate = useNavigate();
+  const { evidence, activeCase, cases, logEvent } = useApp();
 
-  const [selectedId, setSelectedId] = useState<string>(evidence.length > 0 ? evidence[0].evidence_id : 'ev-ret-001');
+  const [isAddEvidenceOpen, setIsAddEvidenceOpen] = useState(false);
+  const [filterActiveCaseOnly, setFilterActiveCaseOnly] = useState(false);
+
+  // Filter evidence if activeCase is set and user toggles filter
+  const displayedEvidence = (filterActiveCaseOnly && activeCase)
+    ? evidence.filter(e => e.case_id === activeCase.case_id)
+    : evidence;
+
+  const [selectedId, setSelectedId] = useState<string>(
+    displayedEvidence.length > 0 ? displayedEvidence[0].evidence_id : (evidence.length > 0 ? evidence[0].evidence_id : '')
+  );
   const [copiedHash, setCopiedHash] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
-  const selectedEvidence = evidence.find(e => e.evidence_id === selectedId) || evidence[0];
+  const selectedEvidence = displayedEvidence.find(e => e.evidence_id === selectedId) || displayedEvidence[0] || evidence[0];
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -30,8 +43,8 @@ export default function EvidencePage() {
 
     setTimeout(() => {
       setVerifying(false);
-      setVerifyNotice(`Integrity attestation confirmed: SHA-256 digest matches evidence locker chain-of-custody manifest (0 bit errors).`);
-      logEvent('EVIDENCE_VERIFIED', `Evidence integrity verified: ${selectedEvidence.name} matches court custody manifest.`, {
+      setVerifyNotice(`Integrity attestation confirmed: SHA-256 digest matches evidence locker chain-of-custody manifest (0 bit errors). Status: VERIFIED.`);
+      logEvent('EVIDENCE_VERIFIED', `Evidence integrity verified: ${selectedEvidence.name} (SHA-256: ${selectedEvidence.hash_sha256 || 'Calculated'}) matches court custody manifest.`, {
         evidence_id: selectedEvidence.evidence_id,
         target: selectedEvidence.name,
         status: 'VERIFIED',
@@ -68,6 +81,13 @@ export default function EvidencePage() {
             <Lock className="w-3.5 h-3.5" />
             <span>WRITE-BLOCK ACTIVE</span>
           </div>
+          <button
+            onClick={() => setIsAddEvidenceOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Evidence</span>
+          </button>
         </div>
       </div>
 
@@ -116,53 +136,81 @@ export default function EvidencePage() {
           <div className="rounded-2xl bg-[#080d19] border border-[#152138] p-4 space-y-3 shadow-[0_4px_25px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between pb-2 border-b border-[#141f36]">
               <span className="text-[11px] font-bold text-slate-300 uppercase">
-                Attached Images ({evidence.length})
+                Attached Images ({displayedEvidence.length})
               </span>
-              <span className="text-[10px] text-emerald-400 font-semibold">
-                BOTH FILESYSTEMS READY
-              </span>
+              {activeCase && (
+                <button
+                  onClick={() => setFilterActiveCaseOnly(!filterActiveCaseOnly)}
+                  className={clsx(
+                    'text-[10px] px-2 py-0.5 rounded border transition-colors',
+                    filterActiveCaseOnly
+                      ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60 font-bold'
+                      : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
+                  )}
+                >
+                  {filterActiveCaseOnly ? `Active Case: ${activeCase.case_number}` : 'Filter by Active Case'}
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
-              {evidence.map(ev => {
-                const isSelected = selectedEvidence?.evidence_id === ev.evidence_id;
-                const isXfs = ev.detected_fs === 'XFS' || ev.filesystem_type === 'XFS';
-                return (
-                  <div
-                    key={ev.evidence_id}
-                    onClick={() => { setSelectedId(ev.evidence_id); setVerifyNotice(null); }}
-                    className={clsx(
-                      'p-3.5 rounded-xl border transition-all cursor-pointer text-left relative overflow-hidden',
-                      isSelected
-                        ? 'bg-gradient-to-br from-[#0c152b] to-[#080e1d] border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20'
-                        : 'bg-[#0a0f1d] border-[#141f36] hover:border-slate-700'
-                    )}
+              {displayedEvidence.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 text-xs">
+                  No evidence attached to {activeCase?.case_number || 'selected filter'}.
+                  <button
+                    onClick={() => setIsAddEvidenceOpen(true)}
+                    className="mt-3 block mx-auto text-cyan-400 hover:underline"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-100 truncate text-xs">{ev.name}</span>
-                      <span className={clsx(
-                        'text-[10px] px-2 py-0.5 rounded font-bold border',
-                        isXfs
-                          ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/40'
-                          : 'bg-indigo-950/60 text-indigo-300 border-indigo-800/40'
-                      )}>
-                        {ev.detected_fs || 'FS'}
-                      </span>
-                    </div>
+                    + Add Evidence Image
+                  </button>
+                </div>
+              ) : (
+                displayedEvidence.map(ev => {
+                  const isSelected = selectedEvidence?.evidence_id === ev.evidence_id;
+                  const isXfs = ev.detected_fs === 'XFS' || ev.filesystem_type === 'XFS';
+                  const linkedCase = cases.find(c => c.case_id === ev.case_id);
+                  return (
+                    <div
+                      key={ev.evidence_id}
+                      onClick={() => { setSelectedId(ev.evidence_id); setVerifyNotice(null); }}
+                      className={clsx(
+                        'p-3.5 rounded-xl border transition-all cursor-pointer text-left relative overflow-hidden',
+                        isSelected
+                          ? 'bg-gradient-to-br from-[#0c152b] to-[#080e1d] border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20'
+                          : 'bg-[#0a0f1d] border-[#141f36] hover:border-slate-700'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-100 truncate text-xs">{ev.name}</span>
+                        <span className={clsx(
+                          'text-[10px] px-2 py-0.5 rounded font-bold border',
+                          isXfs
+                            ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/40'
+                            : 'bg-indigo-950/60 text-indigo-300 border-indigo-800/40'
+                        )}>
+                          {ev.detected_fs || ev.filesystem_type || 'FS'}
+                        </span>
+                      </div>
 
-                    <div className="text-[10px] text-slate-400 mt-1 truncate">{ev.source_path}</div>
+                      <div className="text-[10px] text-slate-400 mt-1 truncate">{ev.source_path}</div>
+                      {linkedCase && (
+                        <div className="text-[9px] text-cyan-400/80 mt-1 font-mono">
+                          Case: {linkedCase.case_number}
+                        </div>
+                      )}
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-[#121c33]">
-                      <span className="text-emerald-400 font-semibold">
-                        {ev.status === 'COMPLETE' ? 'VERIFIED' : 'ANALYZING (70%)'}
-                      </span>
-                      <span className="font-mono text-slate-300">
-                        {ev.size_bytes ? `${(ev.size_bytes / (1024 * 1024 * 1024)).toFixed(0)} GB` : '32 GB'}
-                      </span>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-[#121c33]">
+                        <span className="text-emerald-400 font-semibold">
+                          {ev.status === 'COMPLETE' || ev.status === 'VERIFIED' ? 'VERIFIED' : 'ANALYZING (70%)'}
+                        </span>
+                        <span className="font-mono text-slate-300">
+                          {ev.size_bytes ? `${(ev.size_bytes / (1024 * 1024 * 1024)).toFixed(0)} GB` : '32 GB'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -290,9 +338,48 @@ export default function EvidencePage() {
                 </div>
               </div>
             )}
+
+            {/* Quick Actions for this Evidence */}
+            <div className="pt-4 border-t border-[#141f36] flex flex-wrap items-center justify-between gap-3">
+              <div className="text-[11px] text-slate-400">
+                Proceed to forensic analysis or inspect carved remnants for this evidence image:
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/analysis')}
+                  className="px-3.5 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-cyan-300 text-xs border border-cyan-500/30 transition-colors flex items-center gap-1.5"
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Analyze Inodes</span>
+                </button>
+                <button
+                  onClick={() => navigate('/deleted-files')}
+                  className="px-3.5 py-2 rounded-xl bg-[#121c33] hover:bg-[#182545] text-amber-300 text-xs border border-amber-500/30 transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Deleted Files</span>
+                </button>
+                {selectedEvidence.case_id && (
+                  <button
+                    onClick={() => navigate(`/cases/${selectedEvidence.case_id}`)}
+                    className="px-3.5 py-2 rounded-xl bg-[#16223d] hover:bg-[#1e2f54] text-slate-200 text-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <span>View Case File</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      <AddEvidenceModal
+        isOpen={isAddEvidenceOpen}
+        onClose={() => setIsAddEvidenceOpen(false)}
+        targetCaseId={activeCase?.case_id}
+        onSuccess={(evId) => setSelectedId(evId)}
+      />
     </div>
   );
 }

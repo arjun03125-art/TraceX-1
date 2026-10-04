@@ -34,10 +34,8 @@ interface ChronologyStage {
 
 export default function TimelinePage() {
   const navigate = useNavigate();
-  const { cases, evidence, artifacts, reports, auditEvents } = useApp();
+  const { cases, evidence, artifacts, reports, auditEvents, activeCase: globalActiveCase, activeCaseId, setActiveCaseId } = useApp();
 
-  // Case selection: Defaults to CR-2026-RET-01
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('case-retrieved-100');
   const [activeCategory, setActiveCategory] = useState<TimelineCategory>('ALL');
   const [search, setSearch] = useState('');
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({
@@ -48,9 +46,7 @@ export default function TimelinePage() {
   });
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const activeCase = useMemo(() => {
-    return cases.find(c => c.case_id === selectedCaseId || c.case_number === selectedCaseId) || cases[0];
-  }, [cases, selectedCaseId]);
+  const activeCase = globalActiveCase || cases[0];
 
   const activeEvidence = useMemo(() => {
     return evidence.find(e => e.case_id === activeCase?.case_id) || evidence[0];
@@ -663,29 +659,19 @@ export default function TimelinePage() {
 
         <div className="flex items-center gap-3">
           {/* Case Switcher */}
-          <div className="flex items-center bg-[#0a101f] border border-[#1b2742] rounded-xl p-1 font-mono text-xs">
-            <button
-              onClick={() => setSelectedCaseId('case-retrieved-100')}
-              className={clsx(
-                'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-                selectedCaseId === 'case-retrieved-100'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              )}
+          <div className="flex items-center gap-2 bg-[#0a101f] border border-[#1b2742] rounded-xl px-3 py-1.5 font-mono text-xs">
+            <span className="text-[10px] text-slate-500 uppercase">Case:</span>
+            <select
+              value={activeCase?.case_id || ''}
+              onChange={e => setActiveCaseId(e.target.value)}
+              className="bg-transparent text-cyan-400 font-bold focus:outline-none cursor-pointer"
             >
-              CR-2026-RET-01 (XFS)
-            </button>
-            <button
-              onClick={() => setSelectedCaseId('case-partial-70')}
-              className={clsx(
-                'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-                selectedCaseId === 'case-partial-70'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              )}
-            >
-              CR-2026-REC-70 (Btrfs)
-            </button>
+              {cases.map(c => (
+                <option key={c.case_id} value={c.case_id} className="bg-[#0a101f] text-slate-200">
+                  {c.case_number} — {c.case_title.length > 25 ? c.case_title.substring(0, 25) + '...' : c.case_title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <span className="px-2.5 py-1 rounded bg-amber-950/40 border border-amber-500/30 text-[10px] font-mono text-amber-300 font-semibold tracking-wider uppercase hidden sm:inline-block">

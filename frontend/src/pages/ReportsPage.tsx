@@ -8,15 +8,15 @@ import type { Report } from '../types/forensic';
 import clsx from 'clsx';
 
 export default function ReportsPage() {
-  const { cases, reports, evidence, createReport, artifacts } = useApp();
+  const { cases, reports, evidence, createReport, artifacts, activeCase: globalActiveCase, activeCaseId, setActiveCaseId, logEvent } = useApp();
   const [selectedReport, setSelectedReport] = useState<Report | null>(reports[0] || null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
 
   // Active case selection
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(cases[0]?.case_id || 'case-retrieved-100');
-  const activeCase = cases.find(c => c.case_id === selectedCaseId) || cases[0];
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(globalActiveCase?.case_id || cases[0]?.case_id || '');
+  const activeCase = cases.find(c => c.case_id === selectedCaseId) || globalActiveCase || cases[0];
   const activeEvidence = evidence.find(e => e.case_id === activeCase?.case_id) || evidence[0];
 
   const handleCreateReport = () => {
@@ -44,24 +44,31 @@ export default function ReportsPage() {
     const partial = reportArtifacts.filter(r => r.recovery === 'PARTIAL').length;
 
     const newReport = createReport({
-      case_id: activeCase.case_id,
-      title: `Forensic Examination Report — ${activeCase.case_title.split('—')[0].trim()} (${isXfs ? 'XFS' : 'Btrfs'})`,
-      description: `Official digital forensic examination report on recovered deleted artifacts from ${activeEvidence.name}.`,
+      case_id: activeCase?.case_id || 'case-generic',
+      title: `Forensic Examination Report — ${activeCase?.case_title?.split('—')[0].trim() || 'Incident'} (${isXfs ? 'XFS' : 'Btrfs'})`,
+      description: `Official digital forensic examination report on recovered deleted artifacts from ${activeEvidence?.name || 'Evidence Source'}.`,
       summary: `${success} of ${total} artifacts recovered with full integrity. ${partial > 0 ? `${partial} partial recovery documented.` : 'Zero missing blocks.'}`,
       format: 'HTML',
       report_type: 'COMPREHENSIVE',
-      author: activeCase.investigator || 'Det. H. Vance (Lead Forensic Analyst)',
+      author: activeCase?.investigator || 'Det. H. Vance (Lead Forensic Analyst)',
       classification: 'CONFIDENTIAL / COURT-ADMISSIBLE',
       status: 'FINAL',
-      evidence_id: activeEvidence.evidence_id,
-      evidence_source: activeEvidence.name,
+      evidence_id: activeEvidence?.evidence_id || 'ev-none',
+      evidence_source: activeEvidence?.name || 'DEMO_FORENSIC_IMAGE_XFS.E01',
       filesystem: isXfs ? 'XFS' : 'Btrfs',
-      hash_sha256: activeEvidence.hash_sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      hash_sha256: activeEvidence?.hash_sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
       total_artifacts: total,
       recovered_artifacts: success,
       partial_artifacts: partial,
       validation_result: isXfs ? 'INTEGRITY VERIFIED — 100% MATCH' : 'PARTIAL RECOVERY — METADATA INCOMPLETE',
       recovered_files: reportArtifacts,
+    });
+
+    logEvent('REPORT_GENERATED', `Court report compiled and signed: ${newReport.title} for Case ${activeCase?.case_number}`, {
+      case_id: activeCase?.case_id,
+      evidence_id: activeEvidence?.evidence_id,
+      target: newReport.title,
+      status: 'FINAL',
     });
 
     setSelectedReport(newReport);
